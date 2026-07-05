@@ -1,0 +1,4331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0B0B0F" />
+<title>DAY//2004</title>
+<style>
+  html, body, #root { height: 100%; margin: 0; background: #0B0B0F; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.3.1",
+    "react-dom": "https://esm.sh/react-dom@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+    "lucide-react": "https://esm.sh/lucide-react@0.383.0?external=react,react-dom",
+    "recharts": "https://esm.sh/recharts@2.12.7?external=react,react-dom"
+  }
+}
+</script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-type="module" data-presets="react">
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import {
+  ChevronLeft,
+  Plus,
+  MoreHorizontal,
+  Check,
+  Star,
+  Trash2,
+  Settings,
+  Calendar,
+  BarChart2,
+  FileText,
+  Film,
+  ChevronDown,
+  ChevronRight,
+  X,
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  Info,
+  RotateCcw,
+  Sun,
+  Camera,
+  Heart,
+  MessageCircle,
+  Bell,
+  Users,
+} from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  ResponsiveContainer,
+  YAxis,
+} from "recharts";
+
+/* ---------------------------------------------------------------
+   DAY // 2004 — "your day. your story."
+   A cinematic productivity app. Pixel-matched to the design spec.
+----------------------------------------------------------------*/
+
+let COLORS = {
+  bg: "#0B0B0F",
+  card: "#15151C",
+  cardBorder: "#232330",
+  text: "#FFFFFF",
+  textSecondary: "#A0A0A0",
+  accent: "#C8B79E",
+  danger: "#C4534A",
+  green: "#7FBF8E",
+};
+
+const FONT_PRESETS = {
+  default: {
+    sans: '"Inter", sans-serif',
+    mono: '"Space Mono", monospace',
+    pixel: '"Silkscreen", "Space Mono", monospace',
+    label: "Default",
+  },
+  mono: {
+    sans: '"Space Mono", monospace',
+    mono: '"Space Mono", monospace',
+    pixel: '"Space Mono", monospace',
+    label: "Monospace",
+  },
+  rounded: {
+    sans: '"Poppins", sans-serif',
+    mono: '"Poppins", sans-serif',
+    pixel: '"Poppins", sans-serif',
+    label: "Rounded",
+  },
+  serif: {
+    sans: "Georgia, serif",
+    mono: "Georgia, serif",
+    pixel: "Georgia, serif",
+    label: "Serif",
+  },
+};
+
+let FONT_MONO = FONT_PRESETS.default.mono;
+let FONT_SANS = FONT_PRESETS.default.sans;
+let FONT_PIXEL = FONT_PRESETS.default.pixel;
+let FONT_SCALE = 1;
+let LETTER_SPACING_EXTRA = 0;
+let CARD_SHAPE = "rounded"; // "rounded" | "square"
+
+// scale helpers — used throughout instead of raw numbers so Settings can control them globally
+const fs = (n) => Math.round(n * FONT_SCALE * 10) / 10;
+const ls = (n) => n + LETTER_SPACING_EXTRA;
+const br = (n) => (CARD_SHAPE === "square" ? Math.min(n, 4) : n);
+
+const DEFAULT_APP_SETTINGS = {
+  fontFamily: "default",
+  fontScale: 1,
+  letterSpacing: 0,
+  textColor: "#FFFFFF",
+  cardShape: "rounded",
+  coverImage: null,
+  coverPosition: "50% 50%",
+  coverZoom: 1,
+};
+
+const SCENE_GRADIENTS = {
+  // soft morning light through window blinds
+  morning:
+    "linear-gradient(180deg, rgba(11,11,15,0) 40%, rgba(11,11,15,0.92) 100%), repeating-linear-gradient(180deg, rgba(255,235,200,0.16) 0px, rgba(255,235,200,0.16) 3px, rgba(0,0,0,0.12) 3px, rgba(0,0,0,0.12) 14px), linear-gradient(150deg, #E9C08A 0%, #C97B4A 45%, #2E2430 100%)",
+  // dim desk / screen glow at night
+  work: "linear-gradient(180deg, rgba(11,11,15,0) 35%, rgba(11,11,15,0.94) 100%), radial-gradient(circle at 70% 35%, rgba(120,170,220,0.35) 0%, rgba(120,170,220,0) 45%), linear-gradient(150deg, #3B4A5A 0%, #202A38 55%, #12141C 100%)",
+  // dusk palms
+  evening:
+    "linear-gradient(180deg, rgba(11,11,15,0) 35%, rgba(11,11,15,0.94) 100%), radial-gradient(circle at 50% 15%, rgba(230,150,120,0.4) 0%, rgba(230,150,120,0) 40%), linear-gradient(150deg, #6B4470 0%, #3A2A52 45%, #171220 100%)",
+  // sunset street with power lines
+  home: "linear-gradient(180deg, rgba(11,11,15,0) 30%, rgba(11,11,15,0.96) 100%), linear-gradient(170deg, #E39A5E 0%, #C97B4A 30%, #6E4658 55%, #241E2A 100%)",
+};
+
+const APP_ICON_DATA_URL = "data:image/png;base64,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";
+
+const uid = () =>
+  (typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : "id-" + Math.random().toString(36).slice(2) + Date.now());
+
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+const todayISO = () => new Date().toISOString().slice(0, 10);
+
+const dayLabel = (iso) => {
+  const d = new Date(iso + "T00:00:00");
+  return d
+    .toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
+    .toUpperCase();
+};
+
+const shortDay = (iso) => {
+  const d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString("en-US", { weekday: "short" })[0];
+};
+
+function useLiveWeather() {
+  const [state, setState] = useState({ temp: null, status: "loading" });
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!("geolocation" in navigator)) {
+      setState({ temp: null, status: "unsupported" });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          const res = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`
+          );
+          const data = await res.json();
+          if (cancelled) return;
+          const temp = data?.current_weather?.temperature;
+          if (typeof temp === "number") {
+            setState({ temp: Math.round(temp), status: "ok" });
+          } else {
+            setState({ temp: null, status: "error" });
+          }
+        } catch (e) {
+          if (!cancelled) setState({ temp: null, status: "error" });
+        }
+      },
+      () => {
+        if (!cancelled) setState({ temp: null, status: "denied" });
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 10 * 60 * 1000 }
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return state;
+}
+
+/* ---------------- default data ---------------- */
+
+const defaultScenes = () => [
+  {
+    id: "morning",
+    name: "MORNING",
+    time: "07:00 — 11:00",
+    tasks: [
+      { id: uid(), name: "Wake up early", time: "07:00", done: true, star: true },
+      { id: uid(), name: "Drink water", time: "07:15", done: false, star: false },
+      { id: uid(), name: "Morning workout", time: "07:30", done: true, star: false },
+      { id: uid(), name: "Read 10 pages", time: "08:00", done: false, star: true },
+    ],
+  },
+  {
+    id: "work",
+    name: "WORK MODE",
+    time: "11:00 — 17:00",
+    tasks: [
+      { id: uid(), name: "Finish project", time: "12:00", done: true, star: true },
+      { id: uid(), name: "Email client", time: "13:00", done: true, star: false },
+      { id: uid(), name: "Lunch break", time: "14:00", done: true, star: false },
+      { id: uid(), name: "Study", time: "15:30", done: false, star: false },
+      { id: uid(), name: "Team sync", time: "16:00", done: false, star: false },
+      { id: uid(), name: "Draft report", time: "16:30", done: false, star: false },
+    ],
+  },
+  {
+    id: "evening",
+    name: "EVENING",
+    time: "17:00 — 23:00",
+    tasks: [
+      { id: uid(), name: "Cook dinner", time: "18:00", done: true, star: false },
+      { id: uid(), name: "Call family", time: "19:30", done: false, star: false },
+      { id: uid(), name: "Wind down", time: "21:00", done: false, star: true },
+    ],
+  },
+];
+
+function ImageLayer({ image, position, zoom, gradient }) {
+  if (!image) return null;
+  return (
+    <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundImage: `url(${image})`,
+          backgroundSize: "cover",
+          backgroundPosition: position || "50% 50%",
+          transform: `scale(${zoom || 1})`,
+          transformOrigin: "center center",
+        }}
+      />
+      {gradient && <div style={{ position: "absolute", inset: 0, background: gradient }} />}
+    </div>
+  );
+}
+
+function sceneGradientFallback(s, fallbackKey) {
+  return {
+    backgroundImage: SCENE_GRADIENTS[fallbackKey || s.id] || SCENE_GRADIENTS.work,
+    backgroundSize: "cover",
+  };
+}
+
+function completion(scene) {
+  const total = scene.tasks.length;
+  const done = scene.tasks.filter((t) => t.done).length;
+  return { done, total, pct: total ? Math.round((done / total) * 100) : 0 };
+}
+
+// called when a new day starts: finished tasks are cleared out, unfinished ones carry over
+function clearCompletedTasks(scenes) {
+  return scenes.map((s) => ({ ...s, tasks: s.tasks.filter((t) => !t.done) }));
+}
+
+/* ---------------- storage helpers ---------------- */
+
+/* ---------------- storage helpers ----------------
+   Works in two environments automatically:
+   1) Inside a Claude artifact — uses window.storage (Anthropic's artifact storage)
+   2) Hosted for real (GitHub Pages, Netlify, etc.) — window.storage won't exist there,
+      so it falls back to the browser's own localStorage, which DOES persist normally
+      on a real hosted site (per browser/device — not synced across devices, since
+      that would require a real backend server).
+------------------------------------------------- */
+
+function hasArtifactStorage() {
+  return typeof window !== "undefined" && window.storage && typeof window.storage.get === "function";
+}
+
+async function loadKey(key, fallback) {
+  try {
+    if (hasArtifactStorage()) {
+      const r = await window.storage.get(key);
+      if (r && r.value) return JSON.parse(r.value);
+      return fallback;
+    }
+    const raw = window.localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch (e) {
+    /* not found or storage unavailable */
+  }
+  return fallback;
+}
+async function saveKey(key, value) {
+  try {
+    if (hasArtifactStorage()) {
+      await window.storage.set(key, JSON.stringify(value));
+      return;
+    }
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) {
+    /* ignore — e.g. storage quota exceeded */
+  }
+}
+async function deleteKey(key) {
+  try {
+    if (hasArtifactStorage() && window.storage.delete) {
+      await window.storage.delete(key);
+      return;
+    }
+    window.localStorage.removeItem(key);
+  } catch (e) {
+    /* ignore */
+  }
+}
+
+const MAX_PERSISTABLE_TRACK_BYTES = 4.5 * 1024 * 1024; // stay safely under the 5MB per-key storage limit
+
+async function loadPlaylistFromStorage() {
+  const meta = await loadKey("day2004-playlist-meta", []);
+  const tracks = [];
+  for (const m of meta) {
+    const url = await loadKey("day2004-track-" + m.id, null);
+    if (url) tracks.push({ id: m.id, name: m.name, url, persisted: true });
+  }
+  return tracks;
+}
+
+async function savePlaylistMeta(playlist) {
+  const meta = playlist.filter((t) => t.persisted).map((t) => ({ id: t.id, name: t.name }));
+  await saveKey("day2004-playlist-meta", meta);
+}
+
+/* ---------------- small primitives ---------------- */
+
+function ScreenHeader({ title, onBack, left, right }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "18px 20px 10px",
+      }}
+    >
+      <div style={{ width: 32 }}>
+        {left ? left : onBack && (
+          <button onClick={onBack} style={iconBtnStyle}>
+            <ChevronLeft size={20} color={COLORS.text} />
+          </button>
+        )}
+      </div>
+      <div
+        style={{
+          fontFamily: FONT_MONO,
+          fontSize: fs(13),
+          letterSpacing: ls(2),
+          color: COLORS.text,
+        }}
+      >
+        {title}
+      </div>
+      <div style={{ width: 32, display: "flex", justifyContent: "flex-end" }}>
+        {right}
+      </div>
+    </div>
+  );
+}
+
+const iconBtnStyle = {
+  background: "transparent",
+  border: "none",
+  padding: 6,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+  color: COLORS.text,
+  transition: "transform 120ms ease",
+};
+
+function Pressable({ children, onClick, style, className }) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <div
+      className={className}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      onMouseLeave={() => setPressed(false)}
+      onTouchStart={() => setPressed(true)}
+      onTouchEnd={() => setPressed(false)}
+      onClick={onClick}
+      style={{
+        transform: pressed ? "scale(0.96)" : "scale(1)",
+        transition: "transform 120ms ease",
+        cursor: "pointer",
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function ProgressBar({ pct, height = 6 }) {
+  return (
+    <div
+      style={{
+        width: "100%",
+        height,
+        borderRadius: height,
+        background: "rgba(255,255,255,0.08)",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          width: `${pct}%`,
+          height: "100%",
+          borderRadius: height,
+          background: COLORS.accent,
+          transition: "width 400ms ease",
+        }}
+      />
+    </div>
+  );
+}
+
+function Card({ children, style, onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        background: "rgba(21,21,28,0.82)",
+        backdropFilter: "blur(14px)",
+        WebkitBackdropFilter: "blur(14px)",
+        border: `1px solid ${COLORS.cardBorder}`,
+        borderRadius: br(16),
+        boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function Stars({ value, onChange, size = 16 }) {
+  return (
+    <div style={{ display: "flex", gap: 4 }}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star
+          key={n}
+          size={size}
+          onClick={(e) => {
+            e.stopPropagation();
+            onChange && onChange(n);
+          }}
+          color={n <= value ? COLORS.accent : COLORS.textSecondary}
+          fill={n <= value ? COLORS.accent : "none"}
+          style={{ cursor: onChange ? "pointer" : "default" }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ---------------- bottom navigation ---------------- */
+
+function BottomNav({ active, onChange }) {
+  const items = [
+    { id: "home", label: "day", icon: Calendar },
+    { id: "scenes", label: "scenes", icon: Film },
+    { id: "stats", label: "stats", icon: BarChart2 },
+    { id: "journal", label: "journal", icon: FileText },
+    { id: "community", label: "community", icon: Users },
+  ];
+  return (
+    <div
+      style={{
+        position: "sticky",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        display: "flex",
+        justifyContent: "space-around",
+        alignItems: "center",
+        padding: "10px 6px calc(10px + env(safe-area-inset-bottom))",
+        background: "rgba(11,11,15,0.92)",
+        backdropFilter: "blur(14px)",
+        borderTop: `1px solid ${COLORS.cardBorder}`,
+      }}
+    >
+      {items.map((it) => {
+        const Icon = it.icon;
+        const isActive = active === it.id;
+        return (
+          <button
+            key={it.id}
+            onClick={() => onChange(it.id)}
+            style={{
+              background: "none",
+              border: "none",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 4,
+              padding: "4px 10px",
+              cursor: "pointer",
+              transform: isActive ? "scale(1.05)" : "scale(1)",
+              transition: "transform 150ms ease",
+            }}
+          >
+            <Icon size={18} color={isActive ? COLORS.accent : COLORS.textSecondary} />
+            <span
+              style={{
+                fontFamily: FONT_SANS,
+                fontSize: fs(10),
+                letterSpacing: ls(0.5),
+                color: isActive ? COLORS.accent : COLORS.textSecondary,
+              }}
+            >
+              {it.label}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function greetingForHour(h) {
+  if (h >= 5 && h < 12) return "good morning";
+  if (h >= 12 && h < 17) return "good afternoon";
+  if (h >= 17 && h < 21) return "good evening";
+  return "good night";
+}
+
+function useGreeting() {
+  const [greeting, setGreeting] = useState(greetingForHour(new Date().getHours()));
+  useEffect(() => {
+    const id = setInterval(() => {
+      setGreeting(greetingForHour(new Date().getHours()));
+    }, 60 * 1000); // recheck every minute — real device time, not a fixed value
+    return () => clearInterval(id);
+  }, []);
+  return greeting;
+}
+
+/* ---------------- HOME SCREEN ---------------- */
+
+function HomeScreen({ scenes, goScene, journal, setJournal, appSettings, setAppSettings }) {
+  const date = todayISO();
+  const weather = useLiveWeather();
+  const greeting = useGreeting();
+  const [memoryDate, setMemoryDate] = useState(date);
+  const entry = journal[memoryDate] || { notes: "" };
+  const [memoNotes, setMemoNotes] = useState(entry.notes);
+  const memoDebounce = useRef(null);
+
+  useEffect(() => {
+    setMemoNotes((journal[memoryDate] || { notes: "" }).notes);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [memoryDate]);
+
+  const updateMemo = (val) => {
+    setMemoNotes(val);
+    clearTimeout(memoDebounce.current);
+    memoDebounce.current = setTimeout(() => {
+      setJournal((j) => ({ ...j, [memoryDate]: { ...(j[memoryDate] || {}), notes: val } }));
+    }, 500);
+  };
+
+  const shiftMemoryDay = (delta) => {
+    const d = new Date(memoryDate + "T00:00:00");
+    d.setDate(d.getDate() + delta);
+    const next = d.toISOString().slice(0, 10);
+    if (next > date) return; // can't go into the future
+    setMemoryDate(next);
+  };
+
+  const weatherLabel =
+    weather.status === "ok"
+      ? `${weather.temp}°C`
+      : weather.status === "loading"
+      ? "…"
+      : weather.status === "denied"
+      ? "location off"
+      : "—";
+
+  return (
+    <div style={{ paddingBottom: 110 }}>
+      <div style={{ padding: "18px 20px 4px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div
+          style={{
+            fontFamily: FONT_MONO,
+            fontSize: fs(12),
+            letterSpacing: ls(1),
+            color: COLORS.text,
+            border: `1px solid ${COLORS.cardBorder}`,
+            borderRadius: br(8),
+            padding: "5px 10px",
+          }}
+        >
+          DAY//2004
+        </div>
+        <span
+          style={{
+            fontFamily: FONT_PIXEL,
+            fontSize: fs(20),
+            fontWeight: 700,
+            color: "#FFD24C",
+            textShadow: "0 0 6px rgba(255,210,76,0.5)",
+            transform: "rotate(0deg)",
+          }}
+        >
+          :)
+        </span>
+      </div>
+
+      <div style={{ padding: "14px 20px 0" }}>
+        <div
+          style={{
+            fontFamily: FONT_PIXEL,
+            fontWeight: 700,
+            fontSize: fs(24),
+            color: COLORS.text,
+            lineHeight: 1.3,
+            textShadow: "0 0 6px rgba(255,255,255,0.25)",
+          }}
+        >
+          {greeting},
+          <br />
+          FOUAD.
+        </div>
+      </div>
+
+      <div style={{ padding: "12px 20px 0" }}>
+        <Card
+          style={{
+            padding: "9px 14px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <span
+            style={{
+              fontFamily: FONT_PIXEL,
+              fontSize: fs(12),
+              letterSpacing: ls(0.5),
+              color: COLORS.text,
+            }}
+          >
+            {dayLabel(date)}
+          </span>
+          <span
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              fontFamily: FONT_PIXEL,
+              fontSize: fs(12),
+              color: COLORS.text,
+            }}
+          >
+            <Sun size={16} color={COLORS.accent} />
+            {weatherLabel}
+          </span>
+        </Card>
+      </div>
+
+      <div style={{ padding: "16px 20px" }}>
+        <Card
+          style={{
+            height: 220,
+            position: "relative",
+            overflow: "hidden",
+            ...(appSettings.coverImage ? {} : { backgroundImage: SCENE_GRADIENTS.home, backgroundSize: "cover" }),
+            display: "flex",
+            alignItems: "flex-end",
+            padding: 16,
+          }}
+        >
+          {appSettings.coverImage && (
+            <ImageLayer
+              image={appSettings.coverImage}
+              position={appSettings.coverPosition}
+              zoom={appSettings.coverZoom}
+              gradient="linear-gradient(180deg, rgba(11,11,15,0) 30%, rgba(11,11,15,0.96) 100%)"
+            />
+          )}
+          <div
+            style={{
+              position: "relative",
+              fontFamily: FONT_PIXEL,
+              fontWeight: 700,
+              fontSize: fs(20),
+              color: COLORS.text,
+              textShadow: "0 0 6px rgba(255,255,255,0.25)",
+            }}
+          >
+            every day is
+            <br />a new scene.
+          </div>
+        </Card>
+      </div>
+
+      <div style={{ padding: "0 20px 16px" }}>
+        <div style={{ fontFamily: FONT_SANS, fontSize: fs(11), color: COLORS.textSecondary, marginBottom: 8, letterSpacing: 1 }}>
+          QUICK ACCESS
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {scenes.map((s) => {
+            const c = completion(s);
+            return (
+              <Pressable key={s.id} onClick={() => goScene(s.id)}>
+                <Card
+                  style={{
+                    height: 220,
+                    position: "relative",
+                    overflow: "hidden",
+                    ...(s.image ? {} : sceneGradientFallback(s)),
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    padding: 16,
+                  }}
+                >
+                  {s.image && (
+                    <ImageLayer
+                      image={s.image}
+                      position={s.imagePosition}
+                      zoom={s.imageZoom}
+                      gradient="linear-gradient(180deg, rgba(11,11,15,0) 35%, rgba(11,11,15,0.92) 100%)"
+                    />
+                  )}
+                  <div style={{ position: "relative", fontFamily: FONT_MONO, fontSize: fs(16), color: COLORS.text }}>
+                    {s.name}
+                  </div>
+                  <div style={{ position: "relative" }}>
+                    <div
+                      style={{
+                        fontFamily: FONT_SANS,
+                        fontSize: fs(12),
+                        color: COLORS.textSecondary,
+                        marginBottom: 8,
+                      }}
+                    >
+                      {s.time} &nbsp;·&nbsp; {c.done}/{c.total}
+                    </div>
+                    <ProgressBar pct={c.pct} />
+                  </div>
+                </Card>
+              </Pressable>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{ padding: "0 20px 4px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 8,
+          }}
+        >
+          <span style={{ fontFamily: FONT_SANS, fontSize: fs(11), color: COLORS.textSecondary, letterSpacing: 1 }}>
+            MEMORIES
+          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button onClick={() => shiftMemoryDay(-1)} style={{ ...iconBtnStyle, padding: 2 }}>
+              <ChevronLeft size={16} color={COLORS.textSecondary} />
+            </button>
+            <span style={{ fontFamily: FONT_SANS, fontSize: fs(11), color: COLORS.textSecondary, minWidth: 60, textAlign: "center" }}>
+              {memoryDate === date ? "Today" : dayLabel(memoryDate)}
+            </span>
+            <button
+              onClick={() => shiftMemoryDay(1)}
+              disabled={memoryDate === date}
+              style={{ ...iconBtnStyle, padding: 2, opacity: memoryDate === date ? 0.3 : 1 }}
+            >
+              <ChevronRight size={16} color={COLORS.textSecondary} />
+            </button>
+          </div>
+        </div>
+        <NotebookPage
+          label={memoryDate === date ? "TODAY" : dayLabel(memoryDate)}
+          value={memoNotes}
+          onChange={updateMemo}
+          placeholder="Write a memory from today..."
+          rows={4}
+        />
+      </div>
+    </div>
+  );
+}
+
+function Equalizer({ active }) {
+  const bars = [6, 14, 9, 16, 7];
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 18 }}>
+      {bars.map((h, i) => (
+        <div
+          key={i}
+          style={{
+            width: 4,
+            height: 18,
+            display: "flex",
+            alignItems: "flex-end",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              height: h,
+              backgroundImage:
+                "repeating-linear-gradient(180deg, #9BB4FF 0px, #6C6FE0 3px, transparent 3px, transparent 5px)",
+              transformOrigin: "bottom",
+              animation: active
+                ? `eqBar 900ms steps(4, jump-end) ${i * 0.12}s infinite alternate`
+                : "none",
+              opacity: active ? 1 : 0.3,
+            }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const TRACK_DURATION = 222; // 3:42, seconds — used only for the decorative demo simulation
+
+function MusicPlayer({ playlist, addTracks, removeTrack }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [playing, setPlaying] = useState(true);
+  const [elapsed, setElapsed] = useState(78);
+  const [duration, setDuration] = useState(TRACK_DURATION);
+  const [showList, setShowList] = useState(false);
+  const audioRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  const hasRealTrack = playlist.length > 0;
+  const safeIndex = Math.min(currentIndex, Math.max(0, playlist.length - 1));
+  const currentTrack = hasRealTrack ? playlist[safeIndex] : null;
+
+  // demo simulation only runs when there's no real track loaded
+  useEffect(() => {
+    if (hasRealTrack || !playing) return;
+    const id = setInterval(() => setElapsed((e) => (e + 1) % TRACK_DURATION), 1000);
+    return () => clearInterval(id);
+  }, [playing, hasRealTrack]);
+
+  useEffect(() => {
+    if (!hasRealTrack) return;
+    const audio = audioRef.current;
+    if (!audio || !currentTrack) return;
+    if (audio.src !== currentTrack.url) {
+      audio.src = currentTrack.url;
+    }
+    if (playing) audio.play().catch(() => {});
+    else audio.pause();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [safeIndex, currentTrack?.url]);
+
+  const togglePlay = () => {
+    if (hasRealTrack) {
+      const audio = audioRef.current;
+      if (!audio) return;
+      if (playing) audio.pause();
+      else audio.play().catch(() => {});
+    }
+    setPlaying((p) => !p);
+  };
+
+  const goToIndex = (i) => {
+    setCurrentIndex(i);
+    setPlaying(true);
+    setShowList(false);
+  };
+
+  const skip = (delta) => {
+    if (hasRealTrack) {
+      goToIndex((safeIndex + delta + playlist.length) % playlist.length);
+    } else {
+      setElapsed((e) => (e + delta * 10 + TRACK_DURATION) % TRACK_DURATION);
+    }
+  };
+
+  const onAddFiles = async (fileList) => {
+    const wasEmpty = playlist.length === 0;
+    await addTracks(fileList);
+    if (wasEmpty) {
+      setCurrentIndex(0);
+      setPlaying(true);
+    }
+  };
+
+  const onRemove = (id) => {
+    const idx = playlist.findIndex((t) => t.id === id);
+    removeTrack(id);
+    if (idx === safeIndex) setCurrentIndex(0);
+  };
+
+  const progress = hasRealTrack && duration ? (elapsed / duration) * 100 : (elapsed / TRACK_DURATION) * 100;
+  const trackName = currentTrack ? currentTrack.name : "The Killers — Mr. Brightside";
+
+  return (
+    <div style={{ padding: "0 20px 6px" }}>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="audio/*"
+        multiple
+        style={{ display: "none" }}
+        onChange={(e) => {
+          onAddFiles(e.target.files);
+          e.target.value = "";
+        }}
+      />
+      {hasRealTrack && (
+        <audio
+          ref={audioRef}
+          onTimeUpdate={(e) => setElapsed(e.target.currentTime || 0)}
+          onLoadedMetadata={(e) => setDuration(e.target.duration || TRACK_DURATION)}
+          onEnded={() => skip(1)}
+        />
+      )}
+
+      <Card style={{ padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }} onClick={() => setShowList((s) => !s)}>
+          <div style={{ fontFamily: FONT_SANS, fontSize: fs(9), letterSpacing: ls(1), color: COLORS.textSecondary }}>
+            PLAYING NOW
+          </div>
+          <div
+            style={{
+              fontFamily: FONT_SANS,
+              fontSize: fs(12),
+              color: COLORS.text,
+              marginTop: 2,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {trackName}
+          </div>
+        </div>
+        <button onClick={() => fileInputRef.current?.click()} style={{ ...iconBtnStyle, padding: 4 }}>
+          <Plus size={16} color={COLORS.accent} />
+        </button>
+        <Equalizer active={playing} />
+      </Card>
+
+      <div style={{ padding: "6px 2px 0" }}>
+        <div
+          style={{
+            height: 4,
+            borderRadius: 2,
+            background: "rgba(255,255,255,0.08)",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              width: `${Math.min(100, Math.max(0, progress))}%`,
+              height: "100%",
+              background: COLORS.accent,
+              transition: hasRealTrack ? "none" : "width 900ms linear",
+            }}
+          />
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 40,
+          padding: "14px 0 4px",
+        }}
+      >
+        <button style={{ ...iconBtnStyle, padding: 0 }} onClick={() => skip(-1)}>
+          <SkipBack size={22} color={COLORS.text} fill={COLORS.text} />
+        </button>
+        <button style={{ ...iconBtnStyle, padding: 0 }} onClick={togglePlay}>
+          {playing ? (
+            <Pause size={26} color={COLORS.text} fill={COLORS.text} />
+          ) : (
+            <Play size={26} color={COLORS.text} fill={COLORS.text} />
+          )}
+        </button>
+        <button style={{ ...iconBtnStyle, padding: 0 }} onClick={() => skip(1)}>
+          <SkipForward size={22} color={COLORS.text} fill={COLORS.text} />
+        </button>
+      </div>
+
+      {showList && (
+        <Card style={{ padding: 10, marginTop: 4 }}>
+          {playlist.length === 0 && (
+            <div
+              style={{
+                fontFamily: FONT_SANS,
+                fontSize: fs(11),
+                color: COLORS.textSecondary,
+                padding: "8px 4px",
+              }}
+            >
+              No songs added yet — tap + to add your own.
+            </div>
+          )}
+          {playlist.map((t, i) => (
+            <div
+              key={t.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "8px 6px",
+                borderRadius: br(8),
+                background: i === safeIndex ? "rgba(200,183,158,0.12)" : "transparent",
+              }}
+            >
+              <span
+                onClick={() => goToIndex(i)}
+                style={{
+                  flex: 1,
+                  fontFamily: FONT_SANS,
+                  fontSize: fs(12),
+                  color: i === safeIndex ? COLORS.accent : COLORS.text,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  cursor: "pointer",
+                }}
+              >
+                {t.name}
+                {!t.persisted && (
+                  <span style={{ color: COLORS.textSecondary, fontSize: fs(10) }}> (session only)</span>
+                )}
+              </span>
+              <button onClick={() => onRemove(t.id)} style={{ ...iconBtnStyle, padding: 2 }}>
+                <X size={14} color={COLORS.textSecondary} />
+              </button>
+            </div>
+          ))}
+        </Card>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- SCENES SCREEN ---------------- */
+
+function ScenesScreen({ scenes, goScene, addScene }) {
+  return (
+    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      <ScreenHeader title="SCENES" />
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          padding: "6px 20px 14px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+        }}
+      >
+        {scenes.map((s, i) => {
+          const c = completion(s);
+          return (
+            <Pressable key={s.id} onClick={() => goScene(s.id)} style={{ flex: 1, minHeight: 0 }}>
+              <Card
+                style={{
+                  height: "100%",
+                  position: "relative",
+                  overflow: "hidden",
+                  ...(s.image ? {} : sceneGradientFallback(s)),
+                  padding: 18,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                }}
+              >
+                {s.image && (
+                  <ImageLayer
+                    image={s.image}
+                    position={s.imagePosition}
+                    zoom={s.imageZoom}
+                    gradient="linear-gradient(180deg, rgba(11,11,15,0) 35%, rgba(11,11,15,0.92) 100%)"
+                  />
+                )}
+                <div style={{ position: "relative" }}>
+                  <div style={{ fontFamily: FONT_SANS, fontSize: fs(9), letterSpacing: ls(2), color: COLORS.textSecondary }}>
+                    SCENE {i + 1}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: FONT_PIXEL,
+                      fontWeight: 700,
+                      fontSize: fs(24),
+                      color: COLORS.text,
+                      marginTop: 6,
+                    }}
+                  >
+                    {s.name}
+                  </div>
+                  <div style={{ fontFamily: FONT_SANS, fontSize: fs(12), color: COLORS.textSecondary, marginTop: 6 }}>
+                    {s.time}
+                  </div>
+                </div>
+                <div style={{ position: "relative" }}>
+                  <div style={{ fontFamily: FONT_SANS, fontSize: fs(11), color: COLORS.textSecondary, marginBottom: 6 }}>
+                    {c.done} / {c.total}
+                  </div>
+                  <ProgressBar pct={c.pct} />
+                </div>
+              </Card>
+            </Pressable>
+          );
+        })}
+        <button
+          onClick={addScene}
+          style={{
+            flexShrink: 0,
+            border: "none",
+            background: COLORS.accent,
+            color: "#1B1A1F",
+            borderRadius: br(16),
+            padding: "14px 0",
+            fontFamily: FONT_MONO,
+            fontWeight: 700,
+            fontSize: fs(13),
+            letterSpacing: ls(1),
+            cursor: "pointer",
+          }}
+        >
+          + NEW SCENE
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- TASK ROW (swipe to delete) ---------------- */
+
+function TaskRow({ task, onToggle, onStar, onDelete, onEdit }) {
+  const [dx, setDx] = useState(0);
+  const [open, setOpen] = useState(false);
+  const start = useRef({ x: 0, y: 0 });
+  const dragging = useRef(false);
+  const axis = useRef(null); // 'x' | 'y' | null
+  const startDx = useRef(0);
+
+  const onStart = (x, y) => {
+    start.current = { x, y };
+    startDx.current = dx;
+    dragging.current = true;
+    axis.current = null;
+  };
+
+  const onMove = (x, y) => {
+    if (!dragging.current) return;
+    const deltaX = x - start.current.x;
+    const deltaY = y - start.current.y;
+
+    if (axis.current === null) {
+      if (Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8) return; // not enough movement to decide yet
+      axis.current = Math.abs(deltaX) > Math.abs(deltaY) * 1.4 ? "x" : "y";
+    }
+    if (axis.current !== "x") return; // vertical scroll intent — leave it to the page, don't move the row
+
+    // heavier, slower-feeling drag (damped, not 1:1 with the finger)
+    const damped = deltaX * 0.55;
+    let next = startDx.current + damped;
+    if (next > 0) next *= 0.3;
+    if (next < -80) next = -80 + (next + 80) * 0.2;
+    setDx(Math.max(-100, Math.min(16, next)));
+  };
+
+  const onEnd = () => {
+    dragging.current = false;
+    if (axis.current === "x") {
+      setDx((d) => {
+        const shouldOpen = d < -44;
+        setOpen(shouldOpen);
+        return shouldOpen ? -80 : 0;
+      });
+    }
+    axis.current = null;
+  };
+
+  return (
+    <div style={{ position: "relative", overflow: "hidden", borderRadius: 10 }}>
+      {open && (
+        <div
+          style={{
+            position: "absolute",
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: 80,
+            background: COLORS.danger,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+          onClick={() => onDelete(task.id)}
+        >
+          <Trash2 size={16} color="#fff" />
+        </div>
+      )}
+      <div
+        onTouchStart={(e) => onStart(e.touches[0].clientX, e.touches[0].clientY)}
+        onTouchMove={(e) => onMove(e.touches[0].clientX, e.touches[0].clientY)}
+        onTouchEnd={onEnd}
+        onMouseDown={(e) => onStart(e.clientX, e.clientY)}
+        onMouseMove={(e) => e.buttons === 1 && onMove(e.clientX, e.clientY)}
+        onMouseUp={onEnd}
+        onMouseLeave={() => dragging.current && onEnd()}
+        style={{
+          touchAction: "pan-y",
+          transform: `translateX(${dx}px)`,
+          transition: dragging.current
+            ? "none"
+            : "transform 480ms cubic-bezier(0.25, 1, 0.3, 1), background 200ms ease, border-color 200ms ease",
+          background: task.image
+            ? `linear-gradient(90deg, rgba(11,11,15,0.78) 0%, rgba(11,11,15,0.55) 100%), url(${task.image})`
+            : task.star
+            ? "rgba(200,183,158,0.08)"
+            : COLORS.card,
+          backgroundSize: task.image ? "cover" : undefined,
+          backgroundPosition: task.image ? "center" : undefined,
+          border: `1px solid ${task.star ? "rgba(200,183,158,0.55)" : COLORS.cardBorder}`,
+          borderRadius: br(10),
+          padding: "14px 14px",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+        }}
+      >
+        <button
+          onClick={() => onToggle(task.id)}
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: br(6),
+            border: `1.5px solid ${task.done ? COLORS.accent : COLORS.textSecondary}`,
+            background: task.done ? COLORS.accent : "transparent",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            flexShrink: 0,
+          }}
+        >
+          {task.done && <Check size={14} color="#0B0B0F" />}
+        </button>
+        <div style={{ flex: 1 }} onClick={() => onEdit(task)}>
+          <div
+            style={{
+              fontFamily: FONT_SANS,
+              fontSize: fs(13),
+              color: task.done ? COLORS.textSecondary : COLORS.text,
+              textDecoration: task.done ? "line-through" : "none",
+            }}
+          >
+            {task.name}
+          </div>
+        </div>
+        <div style={{ fontFamily: FONT_SANS, fontSize: fs(11), color: COLORS.textSecondary }}>
+          {task.time}
+        </div>
+        <button onClick={() => onStar(task.id)} style={{ ...iconBtnStyle, padding: 2 }}>
+          <Star size={15} color={task.star ? COLORS.accent : COLORS.textSecondary} fill={task.star ? COLORS.accent : "none"} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- SCENE DETAIL SCREEN ---------------- */
+
+function SceneDetailScreen({ scene, index, updateScene, onBack, onDeleteScene }) {
+  const [modal, setModal] = useState(null); // {mode:'add'|'edit', task}
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [pendingImageFile, setPendingImageFile] = useState(null);
+  const imageInputRef = useRef(null);
+  const c = completion(scene);
+
+  const setTasks = (tasks) => updateScene({ ...scene, tasks });
+
+  const toggle = (id) =>
+    setTasks(scene.tasks.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
+  const star = (id) =>
+    setTasks(scene.tasks.map((t) => (t.id === id ? { ...t, star: !t.star } : t)));
+  const del = (id) => setTasks(scene.tasks.filter((t) => t.id !== id));
+
+  const saveTask = (data) => {
+    if (modal.mode === "add") {
+      setTasks([...scene.tasks, { id: uid(), done: false, star: false, ...data }]);
+    } else {
+      setTasks(scene.tasks.map((t) => (t.id === modal.task.id ? { ...t, ...data } : t)));
+    }
+    setModal(null);
+  };
+
+  const onPickImage = (e) => {
+    const file = e.target.files?.[0];
+    if (file) setPendingImageFile(file);
+    e.target.value = "";
+  };
+
+  return (
+    <div>
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        onChange={onPickImage}
+        style={{ display: "none" }}
+      />
+      {pendingImageFile && (
+        <CoverImagePreviewModal
+          file={pendingImageFile}
+          initialPosition={scene.imagePosition}
+          initialZoom={scene.imageZoom}
+          onCancel={() => setPendingImageFile(null)}
+          onConfirm={(dataUrl, position, zoom) => {
+            updateScene({ ...scene, image: dataUrl, imagePosition: position, imageZoom: zoom });
+            setPendingImageFile(null);
+          }}
+        />
+      )}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "18px 20px 10px",
+        }}
+      >
+        <button onClick={onBack} style={iconBtnStyle}>
+          <ChevronLeft size={20} color={COLORS.text} />
+        </button>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontFamily: FONT_SANS, fontSize: fs(9), letterSpacing: ls(1.5), color: COLORS.textSecondary }}>
+            SCENE {index + 1}
+          </div>
+          <div style={{ fontFamily: FONT_MONO, fontSize: fs(13), letterSpacing: ls(1), color: COLORS.text }}>
+            {scene.name}
+          </div>
+          <div style={{ fontFamily: FONT_SANS, fontSize: fs(10), color: COLORS.textSecondary, marginTop: 2 }}>
+            {scene.time}
+          </div>
+        </div>
+        <div style={{ position: "relative" }}>
+          <button style={iconBtnStyle} onClick={() => setMenuOpen((m) => !m)}>
+            <MoreHorizontal size={18} color={COLORS.text} />
+          </button>
+          {menuOpen && (
+              <div
+                style={{
+                  position: "absolute",
+                  right: 0,
+                  top: 30,
+                  background: COLORS.card,
+                  border: `1px solid ${COLORS.cardBorder}`,
+                  borderRadius: br(10),
+                  overflow: "hidden",
+                  zIndex: 5,
+                  width: 150,
+                }}
+              >
+                <div
+                  onClick={() => {
+                    setMenuOpen(false);
+                    imageInputRef.current?.click();
+                  }}
+                  style={{
+                    padding: "10px 14px",
+                    fontFamily: FONT_SANS,
+                    fontSize: fs(12),
+                    color: COLORS.text,
+                    cursor: "pointer",
+                    borderBottom: `1px solid ${COLORS.cardBorder}`,
+                  }}
+                >
+                  Change Image
+                </div>
+                <div
+                  onClick={() => onDeleteScene(scene.id)}
+                  style={{
+                    padding: "10px 14px",
+                    fontFamily: FONT_SANS,
+                    fontSize: fs(12),
+                    color: COLORS.danger,
+                    cursor: "pointer",
+                  }}
+                >
+                  Delete Scene
+                </div>
+              </div>
+            )}
+        </div>
+      </div>
+
+      <div style={{ padding: "0 20px" }}>
+        <Card
+          style={{
+            height: 110,
+            position: "relative",
+            overflow: "hidden",
+            ...(scene.image ? {} : sceneGradientFallback(scene)),
+          }}
+        >
+          {scene.image && (
+            <ImageLayer
+              image={scene.image}
+              position={scene.imagePosition}
+              zoom={scene.imageZoom}
+              gradient="linear-gradient(180deg, rgba(11,11,15,0) 40%, rgba(11,11,15,0.55) 100%)"
+            />
+          )}
+        </Card>
+      </div>
+
+      <div style={{ padding: "14px 20px 6px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+          <span style={{ fontFamily: FONT_SANS, fontSize: fs(11), color: COLORS.textSecondary, letterSpacing: 1 }}>
+            PROGRESS
+          </span>
+          <span style={{ fontFamily: FONT_SANS, fontSize: fs(11), color: COLORS.textSecondary }}>
+            {c.done}/{c.total}
+          </span>
+        </div>
+        <ProgressBar pct={c.pct} />
+      </div>
+
+      <div style={{ padding: "12px 20px", display: "flex", flexDirection: "column", gap: 8 }}>
+        {scene.tasks.map((t) => (
+          <TaskRow
+            key={t.id}
+            task={t}
+            onToggle={toggle}
+            onStar={star}
+            onDelete={del}
+            onEdit={(task) => setModal({ mode: "edit", task })}
+          />
+        ))}
+
+        <button
+          onClick={() => setModal({ mode: "add", task: null })}
+          style={{
+            marginTop: 6,
+            border: "none",
+            background: COLORS.accent,
+            color: "#1B1A1F",
+            borderRadius: br(16),
+            padding: "14px 0",
+            fontFamily: FONT_MONO,
+            fontWeight: 700,
+            fontSize: fs(13),
+            letterSpacing: ls(1),
+            cursor: "pointer",
+          }}
+        >
+          + ADD TASK
+        </button>
+      </div>
+
+      {modal && (
+        <TaskModal
+          initial={modal.task}
+          mode={modal.mode}
+          onClose={() => setModal(null)}
+          onSave={saveTask}
+          onDelete={modal.mode === "edit" ? () => { del(modal.task.id); setModal(null); } : null}
+        />
+      )}
+    </div>
+  );
+}
+
+function useKeyboardInset() {
+  const [inset, setInset] = useState(0);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const handler = () => {
+      const gap = window.innerHeight - vv.height;
+      setInset(Math.max(0, Math.round(gap)));
+    };
+    handler();
+    vv.addEventListener("resize", handler);
+    vv.addEventListener("scroll", handler);
+    return () => {
+      vv.removeEventListener("resize", handler);
+      vv.removeEventListener("scroll", handler);
+    };
+  }, []);
+  return inset;
+}
+
+function TaskModal({ initial, mode, onClose, onSave, onDelete }) {
+  const [name, setName] = useState(initial?.name || "");
+  const [time, setTime] = useState(initial?.time || "08:00");
+  const [starVal, setStarVal] = useState(!!initial?.star);
+  const [image, setImage] = useState(initial?.image || null);
+  const keyboardInset = useKeyboardInset();
+  const taskImageInputRef = useRef(null);
+
+  const onPickTaskImage = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const dataUrl = await readFileAsDataURL(file);
+    setImage(dataUrl);
+    e.target.value = "";
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.6)",
+        display: "flex",
+        alignItems: "flex-end",
+        zIndex: 20,
+        paddingBottom: keyboardInset,
+        transition: "padding-bottom 180ms ease",
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "100%",
+          maxHeight: `calc(100vh - ${keyboardInset}px - 24px)`,
+          overflowY: "auto",
+          background: COLORS.bg,
+          borderTop: `1px solid ${COLORS.cardBorder}`,
+          borderRadius: "20px 20px 0 0",
+          padding: 20,
+          boxSizing: "border-box",
+          animation: "slideUp 200ms ease",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <div style={{ fontFamily: FONT_MONO, fontSize: fs(13), color: COLORS.text, letterSpacing: 1 }}>
+            {mode === "add" ? "NEW TASK" : "EDIT TASK"}
+          </div>
+          <button style={iconBtnStyle} onClick={onClose}>
+            <X size={18} color={COLORS.textSecondary} />
+          </button>
+        </div>
+
+        <label style={labelStyle}>TASK NAME</label>
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g. Meditate"
+          style={inputStyle}
+        />
+
+        <label style={labelStyle}>TIME</label>
+        <input
+          type="time"
+          value={time}
+          onChange={(e) => setTime(e.target.value)}
+          style={{ ...inputStyle, WebkitAppearance: "none", appearance: "none", colorScheme: "dark" }}
+        />
+
+        <label style={labelStyle}>IMPORTANT</label>
+        <Stars value={starVal ? 5 : 0} onChange={() => setStarVal((s) => !s)} size={20} />
+
+        <label style={labelStyle}>PHOTO (BEHIND TASK)</label>
+        <input
+          ref={taskImageInputRef}
+          type="file"
+          accept="image/*"
+          onChange={onPickTaskImage}
+          style={{ display: "none" }}
+        />
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {image && (
+            <img
+              src={image}
+              alt=""
+              style={{ width: 46, height: 46, borderRadius: br(8), objectFit: "cover" }}
+            />
+          )}
+          <button
+            onClick={() => taskImageInputRef.current?.click()}
+            style={{
+              flex: image ? 0 : 1,
+              padding: "10px 14px",
+              background: "transparent",
+              border: `1px dashed ${COLORS.cardBorder}`,
+              borderRadius: br(10),
+              color: COLORS.accent,
+              fontFamily: FONT_SANS,
+              fontSize: fs(12),
+              whiteSpace: "nowrap",
+              cursor: "pointer",
+            }}
+          >
+            {image ? "Change" : "Add Photo"}
+          </button>
+          {image && (
+            <button
+              onClick={() => setImage(null)}
+              style={{
+                padding: "10px 14px",
+                background: "transparent",
+                border: `1px solid ${COLORS.cardBorder}`,
+                borderRadius: br(10),
+                color: COLORS.textSecondary,
+                fontFamily: FONT_SANS,
+                fontSize: fs(12),
+                cursor: "pointer",
+              }}
+            >
+              Remove
+            </button>
+          )}
+        </div>
+
+        <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+          <button
+            onClick={() => name.trim() && onSave({ name: name.trim(), time, star: starVal, image })}
+            style={{
+              flex: 1,
+              background: COLORS.accent,
+              border: "none",
+              borderRadius: br(12),
+              padding: "13px 0",
+              fontFamily: FONT_SANS,
+              fontWeight: 600,
+              fontSize: fs(13),
+              color: "#0B0B0F",
+              cursor: "pointer",
+            }}
+          >
+            {mode === "add" ? "CREATE" : "SAVE CHANGES"}
+          </button>
+        </div>
+        {onDelete && (
+          <button
+            onClick={onDelete}
+            style={{
+              width: "100%",
+              marginTop: 10,
+              background: "transparent",
+              border: `1px solid ${COLORS.danger}`,
+              borderRadius: br(12),
+              padding: "12px 0",
+              fontFamily: FONT_SANS,
+              fontSize: fs(13),
+              color: COLORS.danger,
+              cursor: "pointer",
+            }}
+          >
+            DELETE TASK
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const labelStyle = {
+  display: "block",
+  fontFamily: FONT_SANS,
+  fontSize: fs(10),
+  letterSpacing: ls(1),
+  color: COLORS.textSecondary,
+  marginBottom: 6,
+  marginTop: 14,
+};
+
+const inputStyle = {
+  width: "100%",
+  height: 46,
+  background: COLORS.card,
+  border: `1px solid ${COLORS.cardBorder}`,
+  borderRadius: br(10),
+  padding: "0 14px",
+  color: COLORS.text,
+  fontFamily: FONT_SANS,
+  fontSize: fs(16),
+  boxSizing: "border-box",
+  outline: "none",
+  marginBottom: 4,
+};
+
+/* ---------------- STATS SCREEN ---------------- */
+
+const PERIODS = ["THIS WEEK", "THIS MONTH", "ALL TIME"];
+
+function StatsScreen({ scenes, history }) {
+  const [periodIdx, setPeriodIdx] = useState(0);
+  const totalTasks = scenes.reduce((a, s) => a + s.tasks.length, 0);
+  const doneTasks = scenes.reduce((a, s) => a + s.tasks.filter((t) => t.done).length, 0);
+  const pct = totalTasks ? Math.round((doneTasks / totalTasks) * 100) : 0;
+
+  const top = scenes.reduce((best, s) => {
+    const c = completion(s);
+    return !best || c.pct > best.pct ? { name: s.name, pct: c.pct } : best;
+  }, null);
+
+  const streak = history.filter((h) => h.pct >= 50).length;
+
+  const chartData = history.map((h) => ({
+    name: shortDay(h.date),
+    value: h.pct,
+  }));
+
+  return (
+    <div>
+      <ScreenHeader title="STATS" />
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+        <button
+          onClick={() => setPeriodIdx((p) => (p + 1) % PERIODS.length)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            background: COLORS.card,
+            border: `1px solid ${COLORS.cardBorder}`,
+            borderRadius: br(10),
+            padding: "8px 16px",
+            color: COLORS.text,
+            fontFamily: FONT_MONO,
+            fontSize: fs(12),
+            letterSpacing: ls(1),
+            cursor: "pointer",
+          }}
+        >
+          {PERIODS[periodIdx]} <ChevronDown size={13} color={COLORS.textSecondary} />
+        </button>
+      </div>
+      <div style={{ padding: "0 20px" }}>
+        <Card style={{ padding: 18, marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+            <span style={{ fontFamily: FONT_PIXEL, fontWeight: 700, fontSize: fs(42), color: COLORS.text }}>
+              {streak}
+            </span>
+            <span style={{ fontFamily: FONT_MONO, fontSize: fs(13), color: COLORS.text, letterSpacing: 1 }}>
+              DAYS SEASON
+            </span>
+          </div>
+          <div style={{ fontFamily: FONT_SANS, fontSize: fs(12), color: COLORS.textSecondary, marginTop: 2 }}>
+            keep going.
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 18 }}>
+            {history.map((h) => (
+              <span
+                key={h.date + "-label"}
+                style={{
+                  width: 26,
+                  textAlign: "center",
+                  fontFamily: FONT_SANS,
+                  fontSize: fs(10),
+                  letterSpacing: ls(1),
+                  color: h.date === todayISO() ? COLORS.accent : COLORS.textSecondary,
+                }}
+              >
+                {shortDay(h.date)}
+              </span>
+            ))}
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+            {history.map((h) => {
+              const isToday = h.date === todayISO();
+              const filled = h.pct >= 50;
+              const partial = h.pct > 0 && h.pct < 50;
+              return (
+                <div
+                  key={h.date}
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: "50%",
+                    background: filled
+                      ? COLORS.accent
+                      : partial
+                      ? "rgba(200,183,158,0.25)"
+                      : "transparent",
+                    border: `1.5px solid ${
+                      filled ? COLORS.accent : isToday ? COLORS.textSecondary : COLORS.cardBorder
+                    }`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  {filled && <Check size={13} color="#0B0B0F" />}
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+
+        <Card style={{ padding: 18, marginBottom: 12 }}>
+          <div style={{ fontFamily: FONT_SANS, fontSize: fs(11), color: COLORS.textSecondary, letterSpacing: 1 }}>
+            PRODUCTIVITY
+          </div>
+          <div style={{ fontFamily: FONT_MONO, fontSize: fs(26), color: COLORS.text, margin: "4px 0 10px" }}>
+            {pct}%
+          </div>
+          <div style={{ width: "100%", height: 90 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
+                <XAxis dataKey="name" tick={{ fill: COLORS.textSecondary, fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis hide domain={[0, 100]} />
+                <Line type="monotone" dataKey="value" stroke={COLORS.accent} strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+
+        <Card style={{ padding: 18 }}>
+          <div style={{ fontFamily: FONT_SANS, fontSize: fs(11), color: COLORS.textSecondary, letterSpacing: 1 }}>
+            TOP SCENE
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
+            <div style={{ fontFamily: FONT_MONO, fontSize: fs(15), color: COLORS.text }}>
+              {top ? top.name : "—"}
+            </div>
+            <div style={{ fontFamily: FONT_MONO, fontSize: fs(15), color: COLORS.accent }}>
+              {top ? `${top.pct}%` : ""}
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- JOURNAL SCREEN ---------------- */
+
+function weekdayName(iso) {
+  const d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString("en-US", { weekday: "long" }).toUpperCase();
+}
+function monthDayYear(iso) {
+  const d = new Date(iso + "T00:00:00");
+  return d
+    .toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+    .toUpperCase();
+}
+
+function NotebookPage({ label, value, onChange, placeholder, rows = 4 }) {
+  return (
+    <div
+      style={{
+        position: "relative",
+        background: "repeating-linear-gradient(180deg, #EDE6D8 0px, #EDE6D8 27px, #DCD2BE 28px)",
+        borderRadius: br(16),
+        padding: "16px 16px 10px 34px",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          left: 12,
+          top: 14,
+          bottom: 14,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+        }}
+      >
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div
+            key={i}
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: "#2A2620",
+            }}
+          />
+        ))}
+      </div>
+
+      <div style={{ fontFamily: FONT_SANS, fontSize: fs(10), color: "#8A8270", letterSpacing: ls(1), marginBottom: 8 }}>
+        {label}
+      </div>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        style={{
+          width: "100%",
+          background: "transparent",
+          border: "none",
+          outline: "none",
+          resize: "none",
+          fontFamily: FONT_SANS,
+          fontSize: fs(16),
+          lineHeight: "28px",
+          color: "#2A2620",
+          boxSizing: "border-box",
+        }}
+      />
+    </div>
+  );
+}
+
+function SummaryRow({ label, value, last }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: "12px 0",
+        borderBottom: last ? "none" : `1px solid ${COLORS.cardBorder}`,
+      }}
+    >
+      <span style={{ fontFamily: FONT_SANS, fontSize: fs(13), color: COLORS.textSecondary }}>{label}</span>
+      <span style={{ fontFamily: FONT_SANS, fontSize: fs(13), color: COLORS.text }}>{value}</span>
+    </div>
+  );
+}
+
+function JournalScreen({
+  scenes,
+  journal,
+  setJournal,
+  history,
+  selectedDate,
+  setSelectedDate,
+  appSettings,
+  setAppSettings,
+}) {
+  const entry = journal[selectedDate] || { notes: "" };
+  const [notes, setNotes] = useState(entry.notes);
+  const debounceRef = useRef(null);
+
+  useEffect(() => {
+    setNotes(entry.notes);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate]);
+
+  const totalTasks = scenes.reduce((a, s) => a + s.tasks.length, 0);
+  const doneTasks = scenes.reduce((a, s) => a + s.tasks.filter((t) => t.done).length, 0);
+  const scenesCompleted = scenes.filter((s) => s.tasks.length && s.tasks.every((t) => t.done)).length;
+
+  const updateNotes = (val) => {
+    setNotes(val);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setJournal((j) => ({ ...j, [selectedDate]: { ...(j[selectedDate] || {}), notes: val } }));
+    }, 500);
+  };
+
+  const pctForDate = (dateIso) => {
+    if (dateIso === todayISO()) return totalTasks ? Math.round((doneTasks / totalTasks) * 100) : 0;
+    const h = history.find((x) => x.date === dateIso);
+    return h ? h.pct : 0;
+  };
+  const ratingForDate = (dateIso) => (pctForDate(dateIso) / 100) * 5;
+  const autoRating = ratingForDate(selectedDate);
+
+  const pastDays = Object.keys(journal)
+    .filter((d) => d !== selectedDate)
+    .sort((a, b) => (a < b ? 1 : -1))
+    .slice(0, 10);
+
+  return (
+    <div>
+      <ScreenHeader title="JOURNAL" />
+      <div style={{ padding: "6px 20px" }}>
+        <Card style={{ padding: 16, marginBottom: 14 }}>
+          <div style={{ fontFamily: FONT_SANS, fontSize: fs(11), color: COLORS.textSecondary, letterSpacing: 1 }}>
+            DAY SUMMARY
+          </div>
+
+          <div
+            style={{
+              height: 220,
+              marginTop: 12,
+              marginBottom: 4,
+              borderRadius: br(14),
+              overflow: "hidden",
+              position: "relative",
+              ...(appSettings.coverImage ? {} : { backgroundImage: SCENE_GRADIENTS.home, backgroundSize: "cover" }),
+              display: "flex",
+              alignItems: "flex-end",
+              padding: 16,
+            }}
+          >
+            {appSettings.coverImage && (
+              <ImageLayer
+                image={appSettings.coverImage}
+                position={appSettings.coverPosition}
+                zoom={appSettings.coverZoom}
+                gradient="linear-gradient(180deg, rgba(11,11,15,0) 30%, rgba(11,11,15,0.92) 100%)"
+              />
+            )}
+            <div style={{ position: "relative" }}>
+              <div
+                style={{
+                  fontFamily: FONT_PIXEL,
+                  fontWeight: 700,
+                  fontSize: fs(26),
+                  color: COLORS.text,
+                  textShadow: "0 0 6px rgba(255,255,255,0.2)",
+                }}
+              >
+                {weekdayName(selectedDate)}
+              </div>
+              <div
+                style={{
+                  fontFamily: FONT_PIXEL,
+                  fontSize: fs(15),
+                  color: COLORS.textSecondary,
+                  marginTop: 4,
+                }}
+              >
+                {monthDayYear(selectedDate)}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 6 }}>
+            <SummaryRow label="Scenes Completed" value={`${scenesCompleted} / ${scenes.length}`} />
+            <SummaryRow label="Tasks Completed" value={`${doneTasks} / ${totalTasks}`} />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0 2px" }}>
+              <span style={{ fontFamily: FONT_SANS, fontSize: fs(13), color: COLORS.textSecondary }}>Overall Rating</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Stars value={Math.round(autoRating)} />
+                <span style={{ fontFamily: FONT_SANS, fontSize: fs(13), color: COLORS.text }}>
+                  {autoRating.toFixed(1)} / 5
+                </span>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <div style={{ marginBottom: 14 }}>
+          <NotebookPage label="NOTES" value={notes} onChange={updateNotes} placeholder="How was your day?" />
+        </div>
+
+        <div style={{ fontFamily: FONT_SANS, fontSize: fs(11), color: COLORS.textSecondary, letterSpacing: ls(1), marginBottom: 8 }}>
+          PAST DAYS
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {pastDays.length === 0 && (
+            <div style={{ fontFamily: FONT_SANS, fontSize: fs(12), color: COLORS.textSecondary }}>
+              No past entries yet.
+            </div>
+          )}
+          {pastDays.map((d) => (
+            <Pressable key={d} onClick={() => setSelectedDate(d)}>
+              <Card style={{ padding: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontFamily: FONT_SANS, fontSize: fs(12), color: COLORS.text }}>{dayLabel(d)}</span>
+                <Stars value={Math.round(ratingForDate(d))} size={12} />
+              </Card>
+            </Pressable>
+          ))}
+        </div>
+        {selectedDate !== todayISO() && (
+          <button
+            onClick={() => setSelectedDate(todayISO())}
+            style={{
+              width: "100%",
+              marginTop: 12,
+              background: "transparent",
+              border: `1px solid ${COLORS.cardBorder}`,
+              borderRadius: br(12),
+              padding: "10px 0",
+              color: COLORS.accent,
+              fontFamily: FONT_SANS,
+              fontSize: fs(12),
+              cursor: "pointer",
+            }}
+          >
+            back to today
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, value }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+      <span style={{ fontFamily: FONT_SANS, fontSize: fs(12), color: COLORS.textSecondary }}>{label}</span>
+      <span style={{ fontFamily: FONT_SANS, fontSize: fs(12), color: COLORS.text }}>{value}</span>
+    </div>
+  );
+}
+
+/* ---------------- MORE SCREEN ---------------- */
+
+function CoverImagePreviewModal({ file, initialPosition, initialZoom, onConfirm, onCancel }) {
+  const [dataUrl, setDataUrl] = useState(null);
+  const [pos, setPos] = useState(() => {
+    const parts = (initialPosition || "50% 50%").replace(/%/g, "").trim().split(/\s+/).map(Number);
+    return { x: isNaN(parts[0]) ? 50 : parts[0], y: isNaN(parts[1]) ? 50 : parts[1] };
+  });
+  const [zoom, setZoom] = useState(initialZoom || 1);
+  const boxRef = useRef(null);
+  const pointers = useRef(new Map()); // pointerId -> {x,y}
+  const dragStart = useRef(null); // {x,y,posX,posY}
+  const pinchStart = useRef(null); // {dist, zoom}
+
+  useEffect(() => {
+    let cancelled = false;
+    readFileAsDataURL(file).then((d) => {
+      if (!cancelled) setDataUrl(d);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [file]);
+
+  const clampZoom = (z) => Math.min(4, Math.max(1, z));
+
+  const movePosByPixels = (dxPx, dyPx) => {
+    const rect = boxRef.current.getBoundingClientRect();
+    // moving the finger right should reveal more of the image's left side -> position % decreases
+    setPos((p) => ({
+      x: Math.min(100, Math.max(0, p.x - (dxPx / rect.width) * 100)),
+      y: Math.min(100, Math.max(0, p.y - (dyPx / rect.height) * 100)),
+    }));
+  };
+
+  const pointerDist = () => {
+    const pts = Array.from(pointers.current.values());
+    if (pts.length < 2) return 0;
+    return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+  };
+
+  const onPointerDown = (e) => {
+    boxRef.current?.setPointerCapture?.(e.pointerId);
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.current.size === 1) {
+      dragStart.current = { x: e.clientX, y: e.clientY };
+    } else if (pointers.current.size === 2) {
+      pinchStart.current = { dist: pointerDist(), zoom };
+      dragStart.current = null;
+    }
+  };
+
+  const onPointerMove = (e) => {
+    if (!pointers.current.has(e.pointerId)) return;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pointers.current.size >= 2 && pinchStart.current) {
+      const newDist = pointerDist();
+      if (pinchStart.current.dist > 0) {
+        const nextZoom = clampZoom(pinchStart.current.zoom * (newDist / pinchStart.current.dist));
+        setZoom(nextZoom);
+      }
+    } else if (pointers.current.size === 1 && dragStart.current) {
+      const dx = e.clientX - dragStart.current.x;
+      const dy = e.clientY - dragStart.current.y;
+      dragStart.current = { x: e.clientX, y: e.clientY };
+      movePosByPixels(dx, dy);
+    }
+  };
+
+  const onPointerUp = (e) => {
+    pointers.current.delete(e.pointerId);
+    if (pointers.current.size === 1) {
+      const [remaining] = pointers.current.values();
+      dragStart.current = { x: remaining.x, y: remaining.y };
+      pinchStart.current = null;
+    } else if (pointers.current.size === 0) {
+      dragStart.current = null;
+      pinchStart.current = null;
+    }
+  };
+
+  const onWheel = (e) => {
+    e.preventDefault();
+    setZoom((z) => clampZoom(z - e.deltaY * 0.0015));
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.85)",
+        zIndex: 30,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        padding: 24,
+      }}
+    >
+      <div
+        style={{
+          fontFamily: FONT_MONO,
+          fontSize: fs(12),
+          letterSpacing: ls(1),
+          color: COLORS.textSecondary,
+          marginBottom: 12,
+          textAlign: "center",
+        }}
+      >
+        DRAG TO MOVE · PINCH OR SCROLL TO ZOOM
+      </div>
+      <div
+        ref={boxRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onWheel={onWheel}
+        style={{
+          position: "relative",
+          height: 220,
+          borderRadius: br(16),
+          overflow: "hidden",
+          border: `1px solid ${COLORS.cardBorder}`,
+          backgroundColor: COLORS.card,
+          cursor: "grab",
+          touchAction: "none",
+          userSelect: "none",
+        }}
+      >
+        {dataUrl ? (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              backgroundImage: `url(${dataUrl})`,
+              backgroundSize: "cover",
+              backgroundPosition: `${pos.x}% ${pos.y}%`,
+              transform: `scale(${zoom})`,
+              transformOrigin: "center center",
+              pointerEvents: "none",
+            }}
+          />
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+            <span style={{ fontFamily: FONT_SANS, fontSize: fs(12), color: COLORS.textSecondary }}>
+              Loading…
+            </span>
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
+        <span style={{ fontFamily: FONT_SANS, fontSize: fs(11), color: COLORS.textSecondary }}>
+          zoom
+        </span>
+        <input
+          type="range"
+          min={1}
+          max={4}
+          step={0.05}
+          value={zoom}
+          onChange={(e) => setZoom(parseFloat(e.target.value))}
+          style={{ flex: 1, accentColor: COLORS.accent }}
+        />
+      </div>
+
+      <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+        <button
+          onClick={onCancel}
+          style={{
+            flex: 1,
+            padding: "13px 0",
+            background: "transparent",
+            border: `1px solid ${COLORS.cardBorder}`,
+            borderRadius: br(12),
+            color: COLORS.textSecondary,
+            fontFamily: FONT_SANS,
+            fontSize: fs(13),
+            cursor: "pointer",
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={() => dataUrl && onConfirm(dataUrl, `${pos.x}% ${pos.y}%`, zoom)}
+          style={{
+            flex: 1,
+            padding: "13px 0",
+            background: COLORS.accent,
+            border: "none",
+            borderRadius: br(12),
+            color: "#0B0B0F",
+            fontFamily: FONT_SANS,
+            fontWeight: 600,
+            fontSize: fs(13),
+            cursor: "pointer",
+          }}
+        >
+          Use Photo
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SettingsSection({ title, children }) {
+  return (
+    <div style={{ marginBottom: 6 }}>
+      <div
+        style={{
+          fontFamily: FONT_SANS,
+          fontSize: fs(11),
+          letterSpacing: ls(1),
+          color: COLORS.textSecondary,
+          marginBottom: 8,
+        }}
+      >
+        {title}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+const TEXT_COLOR_SWATCHES = ["#FFFFFF", "#C8B79E", "#F2C77E", "#8FC1FF", "#F0A0A0", "#A8E0B8"];
+
+/* =================================================================
+   COMMUNITY FEATURE — a simulated living community feed
+================================================================= */
+
+const COMMUNITY_FIRST_NAMES = [
+  "Emma", "Jake", "Olivia", "Tyler", "Madison", "Ethan", "Ashley", "Brandon", "Chloe", "Justin",
+  "Hailey", "Austin", "Kayla", "Dylan", "Megan", "Cody", "Brianna", "Jordan", "Sydney", "Colton",
+  "Alexis", "Hunter", "Destiny", "Trevor", "Paige", "Garrett", "Kaitlyn", "Blake", "Morgan", "Cameron",
+  "Savannah", "Mason", "Taylor", "Riley", "Peyton", "Devon",
+];
+const COMMUNITY_PERSONALITIES = ["calm", "funny", "busy", "introvert", "social"];
+const COMMUNITY_MOODS = ["happy", "tired", "stressed", "excited", "chill", "sad", "motivated", "bored"];
+const COMMUNITY_AVATAR_COLORS = [
+  "#C8B79E", "#8FC1FF", "#F2C77E", "#F0A0A0", "#A8E0B8", "#B79EF0", "#F0C0DE", "#9EDCF0",
+];
+const COMMUNITY_INTERESTS = [
+  "gym", "art", "cooking", "music", "gaming", "books", "travel", "coding",
+  "fashion", "sports", "movies", "plants", "photography", "baking", "hiking",
+  "yoga", "cars", "pets", "dancing", "writing",
+];
+
+function buildCommunityCharacters() {
+  return COMMUNITY_FIRST_NAMES.map((name, i) => ({
+    id: `char-${i}`,
+    name,
+    personality: COMMUNITY_PERSONALITIES[i % COMMUNITY_PERSONALITIES.length],
+    interest: COMMUNITY_INTERESTS[i % COMMUNITY_INTERESTS.length],
+    language: i % 3 === 0 ? "fr" : "en",
+    color: COMMUNITY_AVATAR_COLORS[i % COMMUNITY_AVATAR_COLORS.length],
+    closeness: i % 6 === 0 ? "close" : i % 3 === 0 ? "friend" : "acquaintance",
+    activity: 0.4 + ((i * 37) % 60) / 100,
+  }));
+}
+
+const COMMUNITY_CHARACTERS = buildCommunityCharacters();
+
+function periodForHour(h) {
+  if (h >= 5 && h < 12) return "morning";
+  if (h >= 12 && h < 17) return "afternoon";
+  if (h >= 17 && h < 21) return "evening";
+  return "night";
+}
+
+function randomMood() {
+  return randomFromArr(COMMUNITY_MOODS);
+}
+
+const MOOD_EMOJI = {
+  happy: "😄", tired: "😴", stressed: "😩", excited: "🤩",
+  chill: "😌", sad: "😔", motivated: "🔥", bored: "😐",
+};
+const MOOD_TAILS = {
+  happy: ["feeling so good rn", "on cloud nine ngl", "today's actually great"],
+  tired: ["so exhausted lol", "running on empty", "need a nap asap"],
+  stressed: ["so much on my plate rn", "can't even think straight", "someone send coffee"],
+  excited: ["can't wait for this!!", "hyped is an understatement", "counting down the hours"],
+  chill: ["just vibing", "taking it slow today", "no rush no stress"],
+  sad: ["kinda down today ngl", "not my best day tbh", "just need a sec"],
+  motivated: ["let's get it 💪", "locked in today", "no days off"],
+  bored: ["nothing to do rn", "so bored someone entertain me", "brain is empty lol"],
+};
+
+const MOOD_TAILS_FR = {
+  happy: ["je me sens trop bien là", "aux anges franchement", "aujourd'hui c'est ouf en vrai"],
+  tired: ["grave crevé mdr", "vidé complet", "besoin d'une sieste direct"],
+  stressed: ["j'ai trop de trucs là", "j'arrive plus à réfléchir", "quelqu'un m'envoie un café"],
+  excited: ["j'ai trop hâte !!", "hyper c'est peu dire", "je compte les heures"],
+  chill: ["juste tranquille", "je prends mon temps aujourd'hui", "zéro stress"],
+  sad: ["un peu down aujourd'hui pour de vrai", "pas ma meilleure journée", "besoin d'une seconde"],
+  motivated: ["on y va 💪", "focus aujourd'hui", "aucun jour de repos"],
+  bored: ["rien à faire là", "grave ennuyé quelqu'un me divertit", "cerveau vide mdr"],
+};
+
+const PERIOD_ACTIVITIES = {
+  morning: [
+    "coffee ☕", "the morning commute", "a new class", "an early workout 🏋️", "breakfast",
+    "hitting snooze one too many times", "a 7am alarm that ruined me", "iced coffee szn",
+  ],
+  afternoon: [
+    "lunch 🍜", "back to back deadlines", "a quick nap", "errands", "studying for finals",
+    "a group project that's falling apart", "my third coffee today", "office snacks",
+  ],
+  evening: [
+    "the gym 🏋️", "dinner with friends", "a walk outside 🌆", "movie night 🎬", "cooking (badly)",
+    "a study session that turned into a hangout", "picking an outfit for tonight", "game night with the roomies",
+  ],
+  night: [
+    "some music 🎧", "random 2am thoughts", "a late show", "stargazing", "winding down",
+    "scrolling for way too long", "texting till 3am", "reheated leftovers as a midnight snack",
+  ],
+};
+
+const PERIOD_ACTIVITIES_FR = {
+  morning: ["un café ☕", "le trajet du matin", "un nouveau cours", "un entraînement matinal 🏋️", "le petit-déj"],
+  afternoon: ["le déjeuner 🍜", "des deadlines qui s'enchaînent", "une petite sieste", "des courses", "réviser pour les exams"],
+  evening: ["la salle 🏋️", "un dîner entre potes", "une balade 🌆", "une soirée film 🎬", "cuisiner (mal)"],
+  night: ["un peu de musique 🎧", "des pensées random à 2h du mat", "une série tard", "regarder les étoiles", "se poser"],
+};
+
+const PERSONALITY_TEMPLATES = {
+  calm: {
+    morning: (a) => `slow morning with ${a}. feeling centered today.`,
+    afternoon: (a) => `taking it easy with ${a} this afternoon.`,
+    evening: (a) => `winding down with ${a}. peaceful evening.`,
+    night: (a) => `${a}... goodnight everyone 🌙`,
+  },
+  funny: {
+    morning: (a) => `me vs ${a} this morning: ${a} won lol 💀`,
+    afternoon: (a) => `send help, ${a} is trying to kill me 😂`,
+    evening: (a) => `plot twist: ${a} turned into chaos again 😭`,
+    night: (a) => `${a} but make it 3am chaos 🤡`,
+  },
+  busy: {
+    morning: (a) => `no time to explain, ${a} then straight to work 🏃`,
+    afternoon: (a) => `stacked schedule today, squeezing in ${a} 📋`,
+    evening: (a) => `finally free — ${a} before the next thing`,
+    night: (a) => `still catching up... ${a} then sleep i guess 😮‍💨`,
+  },
+  introvert: {
+    morning: (a) => `quiet start, just me and ${a} 🤍`,
+    afternoon: (a) => `kept to myself today, ${a} was enough`,
+    evening: (a) => `recharging with ${a}, alone time > everything`,
+    night: (a) => `${a} in silence. goodnight 🌙`,
+  },
+  social: {
+    morning: (a) => `who's up for ${a}?? let's gooo!! 🙌`,
+    afternoon: (a) => `grabbing ${a} with the crew, come thru`,
+    evening: (a) => `${a} with everyone tonight, best day fr`,
+    night: (a) => `can't stop thinking about today, ${a} was iconic. love u guys 🥹`,
+  },
+};
+
+const PERSONALITY_TEMPLATES_FR = {
+  calm: {
+    morning: (a) => `matinée tranquille avec ${a}. je me sens zen aujourd'hui.`,
+    afternoon: (a) => `je prends mon temps avec ${a} cet aprem.`,
+    evening: (a) => `je me pose avec ${a}. soirée trop paisible.`,
+    night: (a) => `${a}... bonne nuit tout le monde 🌙`,
+  },
+  funny: {
+    morning: (a) => `moi vs ${a} ce matin : ${a} a gagné mdrr 💀`,
+    afternoon: (a) => `au secours, ${a} essaie de me tuer 😂`,
+    evening: (a) => `rebondissement : ${a} c'est reparti en chaos 😭`,
+    night: (a) => `${a} mais version chaos 3h du mat 🤡`,
+  },
+  busy: {
+    morning: (a) => `pas le temps d'expliquer, ${a} puis direct au travail 🏃`,
+    afternoon: (a) => `journée hyper chargée, je case ${a} 📋`,
+    evening: (a) => `enfin libre — ${a} avant la suite`,
+    night: (a) => `toujours en train de rattraper... ${a} puis dodo je pense 😮‍💨`,
+  },
+  introvert: {
+    morning: (a) => `début tranquille, juste moi et ${a} 🤍`,
+    afternoon: (a) => `je suis resté(e) dans ma bulle, ${a} m'a suffi`,
+    evening: (a) => `je me ressource avec ${a}, le temps solo > tout`,
+    night: (a) => `${a} en silence. bonne nuit 🌙`,
+  },
+  social: {
+    morning: (a) => `qui est chaud pour ${a} ?? on y vaaa !! 🙌`,
+    afternoon: (a) => `${a} avec la bande, venez direct`,
+    evening: (a) => `${a} avec tout le monde ce soir, meilleure journée grave`,
+    night: (a) => `j'arrête pas de repenser à aujourd'hui, ${a} c'était iconique. je vous aime 🥹`,
+  },
+};
+
+const COMMENT_TEMPLATES = {
+  calm: ["nice, enjoy it 🌿", "sounds peaceful honestly", "take your time with that 🤍", "love this energy for you"],
+  funny: ["LMAOOO same 💀", "this is so real lol", "screaming rn 😭", "bro is not okay 😂"],
+  busy: ["wish i had time for that 😩", "same but zero time lol", "goals honestly", "living vicariously rn"],
+  introvert: ["❤️", "same energy", "💛", "felt this"],
+  social: ["let's do this together next time!! 🙌", "yesss i'm so down", "love this for you 🥹", "iconic behavior fr"],
+};
+
+const COMMENT_TEMPLATES_FR = {
+  calm: ["trop bien, profite 🌿", "ça a l'air apaisant grave", "prends ton temps mdr", "j'adore cette énergie pour toi"],
+  funny: ["MDRRR pareil 💀", "c'est trop réel ptdr", "je hurle là 😭", "il/elle va pas bien 😂"],
+  busy: ["j'aimerais trop avoir le temps 😩", "pareil mais zéro temps mdr", "objectif de vie honnêtement", "je vis à travers toi là"],
+  introvert: ["❤️", "même énergie", "💛", "grave ressenti"],
+  social: ["on fait ça ensemble la prochaine fois !! 🙌", "grave chaud jsuis trop partant", "trop content pour toi 🥹", "iconique franchement"],
+};
+
+// keyword-based topic matching so reactions actually relate to what the user wrote,
+// even if it's short, casual, or in Arabic — not true language understanding,
+// just broad keyword coverage across common topics
+const TOPIC_REACTIONS = [
+  { kw: ["gym", "workout", "lift", "cardio", "run", "جيم", "رياضة", "muscu", "salle de sport", "courir"], r: ["let's goo 💪", "so proud of you for showing up", "gains gains gains 🔥", "trop chaud franchement 💪"] },
+  { kw: ["tired", "exhausted", "sleep", "nap", "تعبان", "تعبانة", "نعسان", "fatigué", "fatiguée", "dodo", "crevé"], r: ["go rest fr, you deserve it 🤍", "sleep is important bestie 😴", "sending you the biggest nap energy", "repose-toi grave, tu le mérites 🤍"] },
+  { kw: ["study", "exam", "test", "finals", "homework", "امتحان", "دراسة", "examen", "révisions", "devoirs"], r: ["you got this!! 📚", "good luck, you'll crush it", "sending focus vibes your way", "tu vas trop assurer 📚"] },
+  { kw: ["work", "job", "boss", "office", "شغل", "دوام", "boulot", "travail", "patron"], r: ["hang in there 🙌", "almost the weekend, stay strong", "you're handling it so well", "courage, le week-end approche 🙌"] },
+  { kw: ["food", "hungry", "lunch", "dinner", "eat", "أكل", "جوعان", "manger", "faim", "repas"], r: ["okay but what did you eat 👀", "now i'm hungry too lol", "food always fixes the mood", "ça donne trop faim là 👀"] },
+  { kw: ["sad", "down", "upset", "cry", "حزين", "زعلان", "triste", "pleurer"], r: ["sending you love right now 🤍", "here for you, always", "it's okay to have off days 🫂", "je pense fort à toi là 🤍"] },
+  { kw: ["happy", "excited", "great day", "مبسوط", "فرحان", "content", "heureux", "heureuse"], r: ["yesss love this energy!! 🙌", "so happy for you fr", "this made my day too 🥹", "trop content(e) pour toi grave 🥹"] },
+  { kw: ["weekend", "plans", "saturday", "sunday", "week-end", "samedi", "dimanche"], r: ["okay what's the plan, count me in", "weekend mode: activated 🙌", "living for this", "mode week-end activé 🙌"] },
+  { kw: ["money", "broke", "paycheck", "rent", "فلوس", "argent", "fauché", "loyer"], r: ["adulting is a scam lol 😩", "we're all just surviving out here", "praying for our wallets fr", "on survit tous grave 😩"] },
+  { kw: ["family", "mom", "dad", "sister", "brother", "عيلة", "أهل", "famille", "maman", "papa"], r: ["family time is everything 🤍", "this is so wholesome", "cherish this fr", "profite grave de ta famille 🤍"] },
+  { kw: ["friends", "bestie", "squad", "amis", "potes", "copains"], r: ["real ones only 🤍", "friendship goals honestly", "love this for you guys", "les vrais quoi 🤍"] },
+  { kw: ["rain", "weather", "cold", "hot", "شتي", "برد", "حر", "pluie", "météo", "froid", "chaud"], r: ["the weather really said no 😭", "stay warm/cool out there", "matches my mood tbh", "la météo a dit non franchement 😭"] },
+  { kw: ["movie", "show", "netflix", "series", "film", "série"], r: ["okay what are you watching, need recs", "this is my sign to binge something too", "no spoilers pls 😭", "j'ai besoin de recos là"] },
+  { kw: ["music", "song", "playlist", "concert", "musique", "chanson"], r: ["send the playlist rn", "this is the vibe i needed today", "on repeat energy", "envoie la playlist direct"] },
+  { kw: ["game", "gaming", "play", "jeu", "jouer"], r: ["let's run it later 🎮", "this is sending me", "game night??", "on fait une partie plus tard 🎮"] },
+  { kw: ["birthday", "bday", "anniversaire"], r: ["HAPPY BIRTHDAY 🎉🎂", "hope today's amazing for you", "cheers to another year 🥳", "JOYEUX ANNIVERSAIRE 🎉🎂"] },
+  { kw: ["sick", "cold", "flu", "headache", "مريض", "تعبان", "malade", "mal de tête"], r: ["feel better soon 🤍", "rest up, don't push it", "sending healing vibes", "guéris vite 🤍"] },
+  { kw: ["stress", "stressed", "overwhelmed", "anxious", "stressé", "stressée", "angoissé"], r: ["breathe, you've got this 🤍", "one thing at a time, you're doing great", "sending calm your way", "respire, tu gères grave 🤍"] },
+  { kw: ["win", "won", "proud", "achieved", "promotion", "gagné", "fier", "fière"], r: ["LET'S GOOO 🎉", "so well deserved", "proud of you fr", "trop mérité franchement 🎉"] },
+  { kw: ["breakup", "ex", "heartbroken", "rupture", "cœur brisé"], r: ["sending you strength 🤍", "you deserve so much better", "here for you always", "tu mérites tellement mieux 🤍"] },
+  { kw: ["love", "crush", "date", "dating", "amour", "rencard"], r: ["okay tell me more 👀", "this is so cute", "manifesting good things for you", "raconte-moi tout là 👀"] },
+  { kw: ["coffee", "tea", "caffeine", "café", "thé"], r: ["coffee is life honestly", "same energy every morning lol", "send some this way ☕", "le café c'est la vie franchement ☕"] },
+  { kw: ["travel", "trip", "vacation", "flight", "voyage", "vacances"], r: ["take me with you 😭", "this sounds amazing", "safe travels!!", "emmène-moi avec toi 😭"] },
+  { kw: ["home", "apartment", "room", "roommate", "appart", "coloc"], r: ["make it cozy fr", "home sweet home", "love a good home day", "rends ça cosy grave"] },
+];
+
+function randomFromArr(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+const REACTION_EMOJIS = ["❤️", "🔥", "😂", "👏", "😢"];
+function pickReactionEmoji() {
+  const r = Math.random();
+  if (r < 0.55) return "❤️";
+  if (r < 0.72) return "🔥";
+  if (r < 0.86) return "😂";
+  if (r < 0.95) return "👏";
+  return "😢";
+}
+
+function weightedSample(items, weightFn, count) {
+  const pool = [...items];
+  const chosen = [];
+  for (let i = 0; i < count && pool.length; i++) {
+    const weights = pool.map(weightFn);
+    const total = weights.reduce((a, b) => a + b, 0);
+    if (total <= 0) {
+      chosen.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+      continue;
+    }
+    let r = Math.random() * total;
+    let idx = 0;
+    for (; idx < pool.length; idx++) {
+      r -= weights[idx];
+      if (r <= 0) break;
+    }
+    chosen.push(pool.splice(Math.min(idx, pool.length - 1), 1)[0]);
+  }
+  return chosen;
+}
+
+const INTEREST_TEMPLATES = {
+  gym: ["hit a new PR today 💪 feeling unstoppable", "leg day nearly killed me but so worth it"],
+  art: ["painting again, lost track of time 🎨", "sketchbook is finally filling up"],
+  cooking: ["tried a new recipe, 10/10 would make again 🍳", "kitchen's a mess but dinner slaps"],
+  music: ["new song on repeat all day 🎧", "learning a new chord progression, slowly"],
+  gaming: ["one more match... said that 3 hours ago 🎮", "finally beat that boss level!!"],
+  books: ["couldn't put this book down today 📖", "started a new book, already hooked"],
+  travel: ["daydreaming about my next trip ✈️", "looking at flights again lol send help"],
+  coding: ["debugging for 2 hours over one typo 💻", "shipped a small project today, feels good"],
+  fashion: ["thrifted the best find today 👗", "outfit of the day energy is unmatched"],
+  sports: ["game night was intense 🏀", "our team actually won today!!"],
+  movies: ["rewatching my comfort movie again 🎬", "need recs for tonight, help a girl out"],
+  plants: ["new leaf on my plant, i'm so proud 🌱", "watering the babies, they're thriving"],
+  photography: ["golden hour hit different today 📸", "editing photos from the weekend"],
+  baking: ["banana bread again, no regrets 🍞", "burnt the first batch but redeemed myself"],
+  hiking: ["trail was gorgeous today 🥾", "legs are dead but the view was worth it"],
+  yoga: ["morning yoga fixed my whole mood 🧘", "finally nailed that pose after weeks"],
+  cars: ["cleaned the car, feels brand new 🚗", "road trip playlist is officially ready"],
+  pets: ["my pet did something ridiculous again 🐶", "the judgment i'm getting rn is insane"],
+  dancing: ["dance practice went so well today 💃", "new choreo is HARD but so fun"],
+  writing: ["wrote more today than all week combined 📝", "finally finished that chapter!!"],
+};
+
+const INTEREST_TEMPLATES_FR = {
+  gym: ["nouveau record aujourd'hui 💪 je me sens invincible", "jour des jambes a failli m'achever mais ça valait le coup"],
+  art: ["je peins encore, j'ai perdu la notion du temps 🎨", "mon carnet de croquis se remplit enfin"],
+  cooking: ["testé une nouvelle recette, 10/10 je refais 🍳", "cuisine en bazar mais le dîner est ouf"],
+  music: ["nouveau son en boucle toute la journée 🎧", "j'apprends un nouvel accord, doucement"],
+  gaming: ["encore une partie... ça fait 3h que je dis ça 🎮", "enfin battu ce boss !!"],
+  books: ["j'ai pas réussi à lâcher ce livre aujourd'hui 📖", "nouveau livre, déjà accro"],
+  travel: ["je rêvasse sur mon prochain voyage ✈️", "je regarde encore les vols mdr au secours"],
+  coding: ["2h de debug pour une faute de frappe 💻", "j'ai livré un petit projet aujourd'hui, ça fait du bien"],
+  fashion: ["meilleure trouvaille en friperie aujourd'hui 👗", "tenue du jour, énergie inégalée"],
+  sports: ["soirée match intense 🏀", "notre équipe a gagné aujourd'hui !!"],
+  movies: ["je revois mon film réconfort encore 🎬", "besoin de recos pour ce soir"],
+  plants: ["nouvelle feuille sur ma plante, trop fière 🌱", "j'arrose mes bébés, elles s'épanouissent"],
+  photography: ["l'heure dorée était ouf aujourd'hui 📸", "je trie les photos du week-end"],
+  baking: ["banana bread encore, aucun regret 🍞", "j'ai brûlé la première fournée mais je me suis rattrapé(e)"],
+  hiking: ["le sentier était magnifique aujourd'hui 🥾", "jambes mortes mais la vue valait le coup"],
+  yoga: ["le yoga du matin a réglé toute mon humeur 🧘", "j'ai enfin réussi cette posture"],
+  cars: ["voiture nettoyée, comme neuve 🚗", "playlist road trip officiellement prête"],
+  pets: ["mon animal a encore fait un truc ridicule 🐶", "le jugement que je reçois là est insensé"],
+  dancing: ["répète de danse trop bien passée aujourd'hui 💃", "la nouvelle choré est DURE mais trop fun"],
+  writing: ["j'ai plus écrit aujourd'hui que toute la semaine 📝", "enfin fini ce chapitre !!"],
+};
+
+
+function generateCharacterPostContent(character, atDate) {
+  const isFr = character.language === "fr";
+  const mood = randomMood();
+  const moodTails = isFr ? MOOD_TAILS_FR : MOOD_TAILS;
+  const interestTemplates = isFr ? INTEREST_TEMPLATES_FR : INTEREST_TEMPLATES;
+  const periodActivities = isFr ? PERIOD_ACTIVITIES_FR : PERIOD_ACTIVITIES;
+  const personalityTemplates = isFr ? PERSONALITY_TEMPLATES_FR : PERSONALITY_TEMPLATES;
+
+  if (Math.random() < 0.5 && interestTemplates[character.interest]) {
+    const base = randomFromArr(interestTemplates[character.interest]);
+    if (Math.random() < 0.4) return `${base} ${MOOD_EMOJI[mood]} ${randomFromArr(moodTails[mood])}`;
+    return base;
+  }
+  const period = periodForHour(atDate.getHours());
+  const activity = randomFromArr(periodActivities[period]);
+  const templateFn = personalityTemplates[character.personality][period];
+  const base = templateFn(activity);
+  if (Math.random() < 0.55) {
+    return `${base} ${MOOD_EMOJI[mood]} ${randomFromArr(moodTails[mood])}`;
+  }
+  return base;
+}
+
+function matchTopicReplies(text) {
+  const lower = (text || "").toLowerCase();
+  const matched = TOPIC_REACTIONS.filter((t) => t.kw.some((k) => lower.includes(k)));
+  if (!matched.length) return null;
+  const pool = matched.flatMap((t) => t.r);
+  return pool;
+}
+
+function generateCommentContent(character, contextText) {
+  const isFr = character.language === "fr";
+  const topicPool = contextText ? matchTopicReplies(contextText) : null;
+  if (topicPool && Math.random() < 0.85) return randomFromArr(topicPool);
+  return randomFromArr((isFr ? COMMENT_TEMPLATES_FR : COMMENT_TEMPLATES)[character.personality]);
+}
+
+function createCharacterPost(character, atDate) {
+  return {
+    id: uid(),
+    authorId: character.id,
+    time: atDate.toISOString(),
+    content: generateCharacterPostContent(character, atDate),
+    userReaction: null,
+    reactions: [],
+    comments: [],
+  };
+}
+
+function pickPostingCharacters(count) {
+  return weightedSample(COMMUNITY_CHARACTERS, (c) => c.activity, count);
+}
+
+function pickReactorCharacters(count, preferId) {
+  let pool = COMMUNITY_CHARACTERS;
+  const preferred = preferId ? COMMUNITY_CHARACTERS.find((c) => c.id === preferId) : null;
+  const rest = weightedSample(
+    preferred ? COMMUNITY_CHARACTERS.filter((c) => c.id !== preferId) : COMMUNITY_CHARACTERS,
+    (c) => (c.closeness === "close" ? 3 : c.closeness === "friend" ? 2 : 1),
+    preferred ? count - 1 : count
+  );
+  return preferred ? [preferred, ...rest] : rest;
+}
+
+// one simulated interaction pass over existing posts (likes/comments from characters)
+// keeps the feed bounded so it never grows large enough to blow past storage limits,
+// while still preserving a long, real scroll-back history
+const COMMUNITY_POST_CAP = 600;
+
+function simulateInteractions(posts, atDate) {
+  const notifications = [];
+  if (!posts.length) return { posts, notifications };
+  const recentIds = posts.slice(0, 15).map((p) => p.id);
+  const interactionCount = 1 + Math.floor(Math.random() * 3);
+  let updated = posts;
+  for (let i = 0; i < interactionCount; i++) {
+    const targetId = randomFromArr(recentIds);
+    const target = updated.find((p) => p.id === targetId);
+    if (!target) continue;
+    const eligible = COMMUNITY_CHARACTERS.filter((c) => c.id !== target.authorId);
+    const actor = randomFromArr(eligible);
+    const isLike = Math.random() < 0.65;
+    updated = updated.map((p) => {
+      if (p.id !== target.id) return p;
+      if (isLike) {
+        if (p.reactions.some((r) => r.charId === actor.id)) return p;
+        return { ...p, reactions: [...p.reactions, { charId: actor.id, emoji: pickReactionEmoji() }] };
+      }
+      const comment = {
+        id: uid(),
+        authorId: actor.id,
+        content: generateCommentContent(actor, target.content),
+        time: atDate.toISOString(),
+      };
+      return { ...p, comments: [...p.comments, comment] };
+    });
+    if (target.authorId === "user") {
+      notifications.push({
+        id: uid(),
+        type: isLike ? "like" : "comment",
+        charId: actor.id,
+        postId: target.id,
+        time: atDate.toISOString(),
+        read: false,
+      });
+    }
+  }
+  return { posts: updated, notifications };
+}
+
+// one simulated "tick" of the whole community: maybe a new post + some interactions
+function simulationTick(posts, atDate) {
+  let nextPosts = posts;
+  if (Math.random() < 0.6) {
+    const chars = pickPostingCharacters(1 + (Math.random() < 0.3 ? 1 : 0));
+    const created = chars.map((c) => createCharacterPost(c, atDate));
+    nextPosts = [...created, ...nextPosts];
+  }
+  const { posts: afterInteract, notifications } = simulateInteractions(nextPosts, atDate);
+  return { posts: afterInteract.slice(0, COMMUNITY_POST_CAP), notifications };
+}
+
+// simulate what would have happened while the app was closed/away
+function catchUpCommunity(existingPosts, fromDate, toDate) {
+  const elapsedMinutes = (toDate - fromDate) / 60000;
+  if (elapsedMinutes < 2) return { posts: existingPosts, notifications: [] };
+  const ticks = Math.min(20, Math.floor(elapsedMinutes / 8));
+  let posts = existingPosts;
+  let notifications = [];
+  for (let i = 0; i < ticks; i++) {
+    const tickTime = new Date(fromDate.getTime() + ((i + 1) / ticks) * (toDate - fromDate));
+    const result = simulationTick(posts, tickTime);
+    posts = result.posts;
+    notifications = notifications.concat(result.notifications);
+  }
+  posts = [...posts].sort((a, b) => new Date(b.time) - new Date(a.time));
+  return { posts, notifications };
+}
+
+function seedInitialCommunity(now) {
+  const from = new Date(now.getTime() - 3 * 60 * 60 * 1000); // last 3 hours
+  return catchUpCommunity([], from, now);
+}
+
+function buildWeeklySummaryPost(posts) {
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const recent = posts.filter((p) => new Date(p.time).getTime() >= weekAgo && p.authorId !== "system");
+  if (!recent.length) return null;
+
+  const scored = recent
+    .map((p) => ({ p, score: p.reactions.length + p.comments.length }))
+    .sort((a, b) => b.score - a.score);
+  const top = scored[0]?.score > 0 ? scored[0].p : null;
+
+  const commentCounts = {};
+  recent.forEach((p) =>
+    p.comments.forEach((c) => {
+      if (c.authorId !== "user") commentCounts[c.authorId] = (commentCounts[c.authorId] || 0) + 1;
+    })
+  );
+  let mostActiveId = null;
+  let mostActiveCount = 0;
+  Object.entries(commentCounts).forEach(([id, count]) => {
+    if (count > mostActiveCount) {
+      mostActiveCount = count;
+      mostActiveId = id;
+    }
+  });
+
+  const topAuthor = top ? getCharacterDisplay(top.authorId, {}) : null;
+  const activeAuthor = mostActiveId ? getCharacterDisplay(mostActiveId, {}) : null;
+
+  let content = "📊 this week in the community: ";
+  const parts = [];
+  if (topAuthor) parts.push(`${topAuthor.name}'s post got the most love this week`);
+  if (activeAuthor) parts.push(`${activeAuthor.name} was the most active commenter 💬`);
+  content += parts.length ? parts.join(", and ") : "a pretty quiet week — let's change that 👀";
+
+  return {
+    id: uid(),
+    authorId: "system",
+    time: new Date().toISOString(),
+    content,
+    userReaction: null,
+    reactions: [],
+    comments: [],
+  };
+}
+
+function formatRelativeTime(iso) {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.max(0, Math.floor(diffMs / 60000));
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+function getCharacterDisplay(authorId, overrides) {
+  if (authorId === "user") return { name: "You", color: COLORS.accent, photo: null, closeness: null };
+  if (authorId === "system") return { name: "Weekly Recap", color: COLORS.accent, photo: null, closeness: null };
+  const base = COMMUNITY_CHARACTERS.find((c) => c.id === authorId);
+  const override = overrides?.[authorId];
+  return {
+    name: override?.name || base?.name || "Someone",
+    color: base?.color || COLORS.accent,
+    photo: override?.photo || null,
+    position: override?.photoPosition || "50% 50%",
+    zoom: override?.photoZoom || 1,
+    closeness: base?.closeness || null,
+  };
+}
+
+function ClosenessBadge({ closeness }) {
+  if (closeness !== "close" && closeness !== "friend") return null;
+  return (
+    <span
+      style={{
+        fontFamily: FONT_SANS,
+        fontSize: fs(9),
+        fontWeight: 600,
+        color: closeness === "close" ? COLORS.accent : COLORS.textSecondary,
+        border: `1px solid ${closeness === "close" ? COLORS.accent : COLORS.cardBorder}`,
+        borderRadius: br(6),
+        padding: "1px 5px",
+        marginLeft: 6,
+      }}
+    >
+      {closeness === "close" ? "Close Friend" : "Friend"}
+    </span>
+  );
+}
+
+function Avatar({ name, color, photo, position, zoom, size = 36 }) {
+  if (photo) {
+    return (
+      <div
+        style={{
+          width: size,
+          height: size,
+          borderRadius: "50%",
+          overflow: "hidden",
+          flexShrink: 0,
+          border: `1.5px solid ${COLORS.cardBorder}`,
+          position: "relative",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            backgroundImage: `url(${photo})`,
+            backgroundSize: "cover",
+            backgroundPosition: position || "50% 50%",
+            transform: `scale(${zoom || 1})`,
+            transformOrigin: "center center",
+          }}
+        />
+      </div>
+    );
+  }
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        background: color,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+        fontFamily: FONT_MONO,
+        fontWeight: 700,
+        fontSize: fs(size * 0.4),
+        color: "#0B0B0F",
+      }}
+    >
+      {name[0]}
+    </div>
+  );
+}
+
+function PostCard({ post, overrides, expanded, onToggleExpand, onAddComment, onSetReaction, highlighted, typingCharId }) {
+  const [commentText, setCommentText] = useState("");
+  const [replyingTo, setReplyingTo] = useState(null); // comment id being replied to, or null
+  const [liking, setLiking] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+  const author = getCharacterDisplay(post.authorId, overrides);
+  const reactionCount = post.reactions.length + (post.userReaction ? 1 : 0);
+
+  const handleQuickReact = () => {
+    setLiking(true);
+    setTimeout(() => setLiking(false), 260);
+    onSetReaction(post.id, post.userReaction ? null : "❤️");
+  };
+
+  const pickEmoji = (emoji) => {
+    onSetReaction(post.id, post.userReaction === emoji ? null : emoji);
+    setShowPicker(false);
+  };
+
+  const topLevelComments = post.comments.filter((c) => !c.replyTo);
+  const repliesFor = (id) => post.comments.filter((c) => c.replyTo === id);
+
+  const submitComment = (replyTo) => {
+    if (!commentText.trim()) return;
+    onAddComment(post.id, commentText.trim(), replyTo);
+    setCommentText("");
+    setReplyingTo(null);
+  };
+
+  const CommentRow = ({ c, indented }) => {
+    const cAuthor = getCharacterDisplay(c.authorId, overrides);
+    return (
+      <div key={c.id} className="day2004-app-fade-in" style={{ display: "flex", gap: 8, marginBottom: 8, marginLeft: indented ? 30 : 0 }}>
+        <Avatar name={cAuthor.name} color={cAuthor.color} photo={cAuthor.photo} position={cAuthor.position} zoom={cAuthor.zoom} size={indented ? 22 : 26} />
+        <div style={{ flex: 1, background: "rgba(255,255,255,0.03)", borderRadius: br(10), padding: "8px 10px" }}>
+          <div style={{ fontFamily: FONT_SANS, fontSize: fs(11), fontWeight: 600, color: COLORS.text, display: "flex", alignItems: "center" }}>
+            {cAuthor.name}
+            <ClosenessBadge closeness={cAuthor.closeness} />
+            <span style={{ fontWeight: 400, color: COLORS.textSecondary, fontSize: fs(9), marginLeft: 6 }}>
+              · {formatRelativeTime(c.time)}
+            </span>
+          </div>
+          <div style={{ fontFamily: FONT_SANS, fontSize: fs(12), color: COLORS.text, marginTop: 2 }}>{c.content}</div>
+          {!indented && c.authorId !== "user" && (
+            <button
+              onClick={() => setReplyingTo(replyingTo === c.id ? null : c.id)}
+              style={{
+                background: "none",
+                border: "none",
+                padding: 0,
+                marginTop: 4,
+                fontFamily: FONT_SANS,
+                fontSize: fs(10),
+                color: COLORS.textSecondary,
+                cursor: "pointer",
+              }}
+            >
+              Reply
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div id={`community-post-${post.id}`} className="day2004-app-fade-in">
+      <Card
+        style={{
+          padding: 14,
+          border: `1px solid ${highlighted ? COLORS.accent : COLORS.cardBorder}`,
+          transition: "border-color 600ms ease",
+        }}
+      >
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <Avatar name={author.name} color={author.color} photo={author.photo} position={author.position} zoom={author.zoom} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontFamily: FONT_SANS, fontSize: fs(13), fontWeight: 600, color: COLORS.text, display: "flex", alignItems: "center" }}>
+            {author.name}
+            <ClosenessBadge closeness={author.closeness} />
+          </div>
+          <div style={{ fontFamily: FONT_SANS, fontSize: fs(10), color: COLORS.textSecondary }}>
+            {formatRelativeTime(post.time)}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ fontFamily: FONT_SANS, fontSize: fs(13), color: COLORS.text, marginTop: 10, lineHeight: 1.5 }}>
+        {post.content}
+      </div>
+
+      <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 20, marginTop: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <button
+            onClick={handleQuickReact}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setShowPicker((s) => !s);
+            }}
+            style={{ ...iconBtnStyle, padding: 0, display: "flex", alignItems: "center", gap: 6 }}
+          >
+            {post.userReaction ? (
+              <span style={{ fontSize: fs(16), transform: liking ? "scale(1.35)" : "scale(1)", transition: "transform 180ms ease", display: "inline-block" }}>
+                {post.userReaction}
+              </span>
+            ) : (
+              <Heart size={16} color={COLORS.textSecondary} style={{ transform: liking ? "scale(1.35)" : "scale(1)", transition: "transform 180ms ease" }} />
+            )}
+            <span style={{ fontFamily: FONT_SANS, fontSize: fs(11), color: COLORS.textSecondary }}>{reactionCount}</span>
+          </button>
+          <button onClick={() => setShowPicker((s) => !s)} style={{ ...iconBtnStyle, padding: 2 }}>
+            <span style={{ fontSize: fs(12), color: COLORS.textSecondary }}>+</span>
+          </button>
+        </div>
+        <button
+          onClick={() => onToggleExpand(post.id)}
+          style={{ ...iconBtnStyle, padding: 0, display: "flex", alignItems: "center", gap: 6 }}
+        >
+          <MessageCircle size={16} color={COLORS.textSecondary} />
+          <span style={{ fontFamily: FONT_SANS, fontSize: fs(11), color: COLORS.textSecondary }}>
+            {post.comments.length}
+          </span>
+        </button>
+
+        {showPicker && (
+          <div
+            className="day2004-app-pop-in"
+            style={{
+              position: "absolute",
+              bottom: "100%",
+              left: 0,
+              marginBottom: 6,
+              display: "flex",
+              gap: 6,
+              background: COLORS.card,
+              border: `1px solid ${COLORS.cardBorder}`,
+              borderRadius: br(12),
+              padding: "6px 8px",
+              zIndex: 2,
+            }}
+          >
+            {REACTION_EMOJIS.map((e) => (
+              <button
+                key={e}
+                onClick={() => pickEmoji(e)}
+                style={{ background: "none", border: "none", fontSize: fs(18), cursor: "pointer", padding: 2 }}
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {expanded && (
+        <div style={{ marginTop: 12, borderTop: `1px solid ${COLORS.cardBorder}`, paddingTop: 10 }}>
+          {topLevelComments.map((c) => (
+            <div key={c.id}>
+              <CommentRow c={c} indented={false} />
+              {repliesFor(c.id).map((r) => (
+                <CommentRow key={r.id} c={r} indented />
+              ))}
+              {replyingTo === c.id && (
+                <div style={{ display: "flex", gap: 8, alignItems: "center", marginLeft: 30, marginBottom: 8 }}>
+                  <Avatar name="You" color={COLORS.accent} size={22} />
+                  <input
+                    autoFocus
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder={`Reply…`}
+                    style={{ ...inputStyle, height: 34, flex: 1 }}
+                  />
+                  <button
+                    onClick={() => submitComment(c.id)}
+                    style={{
+                      padding: "0 12px",
+                      height: 34,
+                      background: COLORS.accent,
+                      border: "none",
+                      borderRadius: br(10),
+                      color: "#0B0B0F",
+                      fontFamily: FONT_SANS,
+                      fontWeight: 600,
+                      fontSize: fs(11),
+                      cursor: "pointer",
+                      flexShrink: 0,
+                    }}
+                  >
+                    Send
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {typingCharId && (
+            <div style={{ fontFamily: FONT_SANS, fontSize: fs(11), color: COLORS.textSecondary, fontStyle: "italic", marginBottom: 8 }}>
+              {getCharacterDisplay(typingCharId, overrides).name} is typing…
+            </div>
+          )}
+
+          {replyingTo === null && (
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <Avatar name="You" color={COLORS.accent} size={28} />
+              <input
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="Write a comment…"
+                style={{ ...inputStyle, height: 38, flex: 1 }}
+              />
+              <button
+                onClick={() => submitComment(null)}
+                style={{
+                  padding: "0 14px",
+                  height: 38,
+                  background: COLORS.accent,
+                  border: "none",
+                  borderRadius: br(10),
+                  color: "#0B0B0F",
+                  fontFamily: FONT_SANS,
+                  fontWeight: 600,
+                  fontSize: fs(12),
+                  cursor: "pointer",
+                  flexShrink: 0,
+                }}
+              >
+                Send
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+      </Card>
+    </div>
+  );
+}
+
+function CharacterManager({ overrides, setOverrides, onClose }) {
+  const fileInputRef = useRef(null);
+  const [editingId, setEditingId] = useState(null);
+  const [pendingPhotoFile, setPendingPhotoFile] = useState(null);
+
+  const onPickPhoto = (e, id) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setEditingId(id);
+      setPendingPhotoFile(file);
+    }
+    e.target.value = "";
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 30, display: "flex", flexDirection: "column", padding: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <span style={{ fontFamily: FONT_MONO, fontSize: fs(13), color: COLORS.text, letterSpacing: 1 }}>
+          EDIT PEOPLE
+        </span>
+        <button onClick={onClose} style={iconBtnStyle}>
+          <X size={18} color={COLORS.textSecondary} />
+        </button>
+      </div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: "none" }}
+        onChange={(e) => onPickPhoto(e, editingId)}
+      />
+      {pendingPhotoFile && (
+        <CoverImagePreviewModal
+          file={pendingPhotoFile}
+          initialPosition={overrides?.[editingId]?.photoPosition}
+          initialZoom={overrides?.[editingId]?.photoZoom}
+          onCancel={() => setPendingPhotoFile(null)}
+          onConfirm={(dataUrl, position, zoom) => {
+            setOverrides((o) => ({
+              ...o,
+              [editingId]: { ...(o[editingId] || {}), photo: dataUrl, photoPosition: position, photoZoom: zoom },
+            }));
+            setPendingPhotoFile(null);
+          }}
+        />
+      )}
+      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+        {COMMUNITY_CHARACTERS.map((c) => {
+          const display = getCharacterDisplay(c.id, overrides);
+          return (
+            <Card key={c.id} style={{ padding: 10, display: "flex", alignItems: "center", gap: 10 }}>
+              <button
+                onClick={() => {
+                  setEditingId(c.id);
+                  setTimeout(() => fileInputRef.current?.click(), 0);
+                }}
+                style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
+              >
+                <Avatar name={display.name} color={display.color} photo={display.photo} position={display.position} zoom={display.zoom} size={40} />
+              </button>
+              <input
+                value={display.name}
+                onChange={(e) =>
+                  setOverrides((o) => ({ ...o, [c.id]: { ...(o[c.id] || {}), name: e.target.value } }))
+                }
+                style={{ ...inputStyle, flex: 1, height: 38 }}
+              />
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function CommunitySection({ posts, notifications, overrides, setOverrides, onPost, onSetReaction, onAddComment, onMarkNotificationsRead, typingIndicators, onOpenSettings }) {
+  const [draft, setDraft] = useState("");
+  const [showNotifs, setShowNotifs] = useState(false);
+  const [showManager, setShowManager] = useState(false);
+  const [expandedPostId, setExpandedPostId] = useState(null);
+  const [highlightedPostId, setHighlightedPostId] = useState(null);
+  const unread = notifications.filter((n) => !n.read).length;
+
+  const submitPost = () => {
+    if (!draft.trim()) return;
+    onPost(draft.trim());
+    setDraft("");
+  };
+
+  const jumpToPost = (postId) => {
+    setShowNotifs(false);
+    setExpandedPostId(postId);
+    setHighlightedPostId(postId);
+    setTimeout(() => {
+      document.getElementById(`community-post-${postId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 80);
+    setTimeout(() => setHighlightedPostId(null), 2200);
+  };
+
+  return (
+    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      <ScreenHeader
+        title="COMMUNITY"
+        left={
+          <button onClick={onOpenSettings} style={iconBtnStyle}>
+            <Settings size={17} color={COLORS.textSecondary} />
+          </button>
+        }
+        right={
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button onClick={() => setShowManager(true)} style={iconBtnStyle}>
+              <Users size={17} color={COLORS.textSecondary} />
+            </button>
+            <button
+              onClick={() => {
+                setShowNotifs((s) => !s);
+                if (!showNotifs) onMarkNotificationsRead();
+              }}
+              style={{ ...iconBtnStyle, position: "relative" }}
+            >
+              <Bell size={17} color={COLORS.text} />
+              {unread > 0 && (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: 2,
+                    right: 2,
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: COLORS.danger,
+                  }}
+                />
+              )}
+            </button>
+          </div>
+        }
+      />
+
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "6px 20px 20px" }}>
+      {showManager && (
+        <CharacterManager overrides={overrides} setOverrides={setOverrides} onClose={() => setShowManager(false)} />
+      )}
+
+      {showNotifs ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {notifications.length === 0 && (
+            <div style={{ fontFamily: FONT_SANS, fontSize: fs(12), color: COLORS.textSecondary, padding: "10px 0" }}>
+              No notifications yet.
+            </div>
+          )}
+          {notifications.map((n) => {
+            const author = getCharacterDisplay(n.charId, overrides);
+            return (
+              <Pressable key={n.id} onClick={() => jumpToPost(n.postId)}>
+                <Card style={{ padding: 12, display: "flex", alignItems: "center", gap: 10 }}>
+                  <Avatar name={author.name} color={author.color} photo={author.photo} position={author.position} zoom={author.zoom} size={30} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontFamily: FONT_SANS, fontSize: fs(12), color: COLORS.text }}>
+                      <b>{author.name}</b>{" "}
+                      {n.type === "celebration"
+                        ? "celebrated you finishing your whole day 🎉"
+                        : n.type === "like"
+                        ? "liked your post ❤️"
+                        : n.type === "reply"
+                        ? "replied to your comment"
+                        : "commented on your post"}
+                    </div>
+                    <div style={{ fontFamily: FONT_SANS, fontSize: fs(10), color: COLORS.textSecondary }}>
+                      {formatRelativeTime(n.time)}
+                    </div>
+                  </div>
+                  <ChevronRight size={14} color={COLORS.textSecondary} />
+                </Card>
+              </Pressable>
+            );
+          })}
+        </div>
+      ) : (
+        <>
+          <Card style={{ padding: 14, marginBottom: 14 }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <Avatar name="You" color={COLORS.accent} size={32} />
+              <textarea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="Share something with the community…"
+                rows={2}
+                style={{
+                  flex: 1,
+                  background: "transparent",
+                  border: "none",
+                  outline: "none",
+                  resize: "none",
+                  fontFamily: FONT_SANS,
+                  fontSize: fs(16),
+                  color: COLORS.text,
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+              <button
+                onClick={submitPost}
+                disabled={!draft.trim()}
+                style={{
+                  padding: "9px 18px",
+                  background: draft.trim() ? COLORS.accent : COLORS.cardBorder,
+                  border: "none",
+                  borderRadius: br(10),
+                  color: draft.trim() ? "#0B0B0F" : COLORS.textSecondary,
+                  fontFamily: FONT_SANS,
+                  fontWeight: 600,
+                  fontSize: fs(12),
+                  cursor: draft.trim() ? "pointer" : "default",
+                }}
+              >
+                Post
+              </button>
+            </div>
+          </Card>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {posts.map((p) => (
+              <PostCard
+                key={p.id}
+                post={p}
+                overrides={overrides}
+                expanded={expandedPostId === p.id}
+                onToggleExpand={(id) => setExpandedPostId((cur) => (cur === id ? null : id))}
+                highlighted={highlightedPostId === p.id}
+                onSetReaction={onSetReaction}
+                onAddComment={onAddComment}
+                typingCharId={typingIndicators?.[p.id]}
+              />
+            ))}
+          </div>
+        </>
+      )}
+      </div>
+    </div>
+  );
+}
+
+function MoreScreen({ onBack, onReset, appSettings, setAppSettings, playlist, addTracks, removeTrack }) {
+  const set = (patch) => setAppSettings((s) => ({ ...s, ...patch }));
+  const [pendingCoverFile, setPendingCoverFile] = useState(null);
+  const coverInputRef = useRef(null);
+  const musicInputRef = useRef(null);
+
+  const onPickCover = (e) => {
+    const file = e.target.files?.[0];
+    if (file) setPendingCoverFile(file);
+    e.target.value = "";
+  };
+
+  return (
+    <div>
+      <ScreenHeader title="SETTINGS" onBack={onBack} />
+      <input
+        ref={coverInputRef}
+        type="file"
+        accept="image/*"
+        onChange={onPickCover}
+        style={{ display: "none" }}
+      />
+      {pendingCoverFile && (
+        <CoverImagePreviewModal
+          file={pendingCoverFile}
+          initialPosition={appSettings.coverPosition}
+          initialZoom={appSettings.coverZoom}
+          onCancel={() => setPendingCoverFile(null)}
+          onConfirm={(dataUrl, position, zoom) => {
+            set({ coverImage: dataUrl, coverPosition: position, coverZoom: zoom });
+            setPendingCoverFile(null);
+          }}
+        />
+      )}
+      <div style={{ padding: "6px 20px", display: "flex", flexDirection: "column", gap: 18 }}>
+        <Card style={{ padding: 16, display: "flex", gap: 12, alignItems: "center" }}>
+          <Info size={18} color={COLORS.accent} />
+          <div>
+            <div style={{ fontFamily: FONT_SANS, fontSize: fs(13), color: COLORS.text }}>DAY//2004</div>
+            <div style={{ fontFamily: FONT_SANS, fontSize: fs(11), color: COLORS.textSecondary }}>
+              your day. your story. — v1.0
+            </div>
+          </div>
+        </Card>
+
+        <Card style={{ padding: 16 }}>
+          <SettingsSection title="COVER PHOTO (DAY & JOURNAL)">
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              {appSettings.coverImage && (
+                <div
+                  style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: br(10),
+                    backgroundImage: `url(${appSettings.coverImage})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: appSettings.coverPosition || "center",
+                    flexShrink: 0,
+                  }}
+                />
+              )}
+              <button
+                onClick={() => coverInputRef.current?.click()}
+                style={{
+                  flex: 1,
+                  padding: "10px 14px",
+                  background: "transparent",
+                  border: `1px dashed ${COLORS.cardBorder}`,
+                  borderRadius: br(10),
+                  color: COLORS.accent,
+                  fontFamily: FONT_SANS,
+                  fontSize: fs(12),
+                  cursor: "pointer",
+                }}
+              >
+                {appSettings.coverImage ? "Change Photo" : "Choose Photo"}
+              </button>
+              {appSettings.coverImage && (
+                <button
+                  onClick={() => set({ coverImage: null, coverPosition: "50% 50%" })}
+                  style={{
+                    padding: "10px 14px",
+                    background: "transparent",
+                    border: `1px solid ${COLORS.cardBorder}`,
+                    borderRadius: br(10),
+                    color: COLORS.textSecondary,
+                    fontFamily: FONT_SANS,
+                    fontSize: fs(12),
+                    cursor: "pointer",
+                  }}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          </SettingsSection>
+
+          <SettingsSection title="MUSIC LIBRARY">
+            <input
+              ref={musicInputRef}
+              type="file"
+              accept="audio/*"
+              multiple
+              style={{ display: "none" }}
+              onChange={(e) => {
+                addTracks(e.target.files);
+                e.target.value = "";
+              }}
+            />
+            <button
+              onClick={() => musicInputRef.current?.click()}
+              style={{
+                width: "100%",
+                padding: "10px 14px",
+                background: "transparent",
+                border: `1px dashed ${COLORS.cardBorder}`,
+                borderRadius: br(10),
+                color: COLORS.accent,
+                fontFamily: FONT_SANS,
+                fontSize: fs(12),
+                cursor: "pointer",
+                marginBottom: playlist.length ? 10 : 0,
+              }}
+            >
+              + Add Songs
+            </button>
+            {playlist.map((t) => (
+              <div
+                key={t.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "8px 4px",
+                }}
+              >
+                <span
+                  style={{
+                    flex: 1,
+                    fontFamily: FONT_SANS,
+                    fontSize: fs(12),
+                    color: COLORS.text,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {t.name}
+                  {!t.persisted && (
+                    <span style={{ color: COLORS.textSecondary, fontSize: fs(10) }}> (session only)</span>
+                  )}
+                </span>
+                <button onClick={() => removeTrack(t.id)} style={{ ...iconBtnStyle, padding: 2 }}>
+                  <X size={14} color={COLORS.textSecondary} />
+                </button>
+              </div>
+            ))}
+          </SettingsSection>
+
+          <SettingsSection title="APP FONT">
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {Object.entries(FONT_PRESETS).map(([key, p]) => (
+                <button
+                  key={key}
+                  onClick={() => set({ fontFamily: key })}
+                  style={{
+                    padding: "8px 14px",
+                    borderRadius: br(10),
+                    border: `1px solid ${appSettings.fontFamily === key ? COLORS.accent : COLORS.cardBorder}`,
+                    background: appSettings.fontFamily === key ? "rgba(200,183,158,0.15)" : "transparent",
+                    color: appSettings.fontFamily === key ? COLORS.accent : COLORS.textSecondary,
+                    fontFamily: p.sans,
+                    fontSize: fs(12),
+                    cursor: "pointer",
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </SettingsSection>
+
+          <SettingsSection title={`FONT SIZE — ${Math.round(appSettings.fontScale * 100)}%`}>
+            <input
+              type="range"
+              min={0.8}
+              max={1.4}
+              step={0.05}
+              value={appSettings.fontScale}
+              onChange={(e) => set({ fontScale: parseFloat(e.target.value) })}
+              style={{ width: "100%", accentColor: COLORS.accent }}
+            />
+          </SettingsSection>
+
+          <SettingsSection title={`LETTER SPACING — ${appSettings.letterSpacing.toFixed(1)}px`}>
+            <input
+              type="range"
+              min={0}
+              max={3}
+              step={0.25}
+              value={appSettings.letterSpacing}
+              onChange={(e) => set({ letterSpacing: parseFloat(e.target.value) })}
+              style={{ width: "100%", accentColor: COLORS.accent }}
+            />
+          </SettingsSection>
+
+          <SettingsSection title="TEXT COLOR">
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              {TEXT_COLOR_SWATCHES.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => set({ textColor: c })}
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: "50%",
+                    background: c,
+                    border: appSettings.textColor === c ? `2px solid ${COLORS.accent}` : "2px solid transparent",
+                    boxShadow: "0 0 0 1px rgba(255,255,255,0.15)",
+                    cursor: "pointer",
+                  }}
+                />
+              ))}
+              <input
+                type="color"
+                value={appSettings.textColor}
+                onChange={(e) => set({ textColor: e.target.value })}
+                style={{ width: 32, height: 32, border: "none", background: "none", cursor: "pointer" }}
+              />
+            </div>
+          </SettingsSection>
+
+          <SettingsSection title="BOX SHAPE">
+            <div style={{ display: "flex", gap: 8 }}>
+              {["rounded", "square"].map((shape) => (
+                <button
+                  key={shape}
+                  onClick={() => set({ cardShape: shape })}
+                  style={{
+                    flex: 1,
+                    padding: "10px 0",
+                    borderRadius: shape === "square" ? 4 : 12,
+                    border: `1px solid ${appSettings.cardShape === shape ? COLORS.accent : COLORS.cardBorder}`,
+                    background: appSettings.cardShape === shape ? "rgba(200,183,158,0.15)" : "transparent",
+                    color: appSettings.cardShape === shape ? COLORS.accent : COLORS.textSecondary,
+                    fontFamily: FONT_SANS,
+                    fontSize: fs(12),
+                    textTransform: "capitalize",
+                    cursor: "pointer",
+                  }}
+                >
+                  {shape}
+                </button>
+              ))}
+            </div>
+          </SettingsSection>
+        </Card>
+
+        <Pressable onClick={onReset}>
+          <Card style={{ padding: 16, display: "flex", gap: 12, alignItems: "center", borderColor: COLORS.danger }}>
+            <RotateCcw size={18} color={COLORS.danger} />
+            <div style={{ fontFamily: FONT_SANS, fontSize: fs(13), color: COLORS.danger }}>
+              Reset all data
+            </div>
+          </Card>
+        </Pressable>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- ROOT APP ---------------- */
+
+export default function App() {
+  const [scenes, setScenes] = useState(defaultScenes());
+  const [journal, setJournal] = useState({});
+  const [history, setHistory] = useState([]);
+  const [tab, setTab] = useState("home");
+  const [activeSceneId, setActiveSceneId] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(todayISO());
+  const [loaded, setLoaded] = useState(false);
+  const [appSettings, setAppSettings] = useState(DEFAULT_APP_SETTINGS);
+  const [playlist, setPlaylist] = useState([]);
+  const [communityPosts, setCommunityPosts] = useState([]);
+  const [communityNotifications, setCommunityNotifications] = useState([]);
+  const [characterOverrides, setCharacterOverrides] = useState({});
+  const [showSettings, setShowSettings] = useState(false);
+  const [communityTyping, setCommunityTyping] = useState({});
+  const communityPostsRef = useRef([]);
+  const dayRolloverDateRef = useRef(todayISO());
+  const celebratedDateRef = useRef(null);
+  const lastWeeklySummaryRef = useRef(null);
+  useEffect(() => {
+    communityPostsRef.current = communityPosts;
+  }, [communityPosts]);
+
+  // apply appearance settings to the shared style variables BEFORE rendering
+  // children this pass, so every component picks up the new values immediately
+  const preset = FONT_PRESETS[appSettings.fontFamily] || FONT_PRESETS.default;
+  FONT_SANS = preset.sans;
+  FONT_MONO = preset.mono;
+  FONT_PIXEL = preset.pixel;
+  FONT_SCALE = appSettings.fontScale;
+  LETTER_SPACING_EXTRA = appSettings.letterSpacing;
+  CARD_SHAPE = appSettings.cardShape;
+  COLORS.text = appSettings.textColor;
+
+  // lock the viewport so pinch/double-tap zoom can't happen — feels native, not like a web page
+  useEffect(() => {
+    let meta = document.querySelector('meta[name="viewport"]');
+    const created = !meta;
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.name = "viewport";
+      document.head.appendChild(meta);
+    }
+    const previousContent = meta.getAttribute("content");
+    meta.setAttribute(
+      "content",
+      "width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"
+    );
+    return () => {
+      if (created) meta.remove();
+      else if (previousContent) meta.setAttribute("content", previousContent);
+    };
+  }, []);
+
+  // set the app icon + "add to home screen" behavior so it opens like a real installed app
+  useEffect(() => {
+    const created = [];
+
+    const upsertLink = (rel, href, extraAttrs = {}) => {
+      let link = document.querySelector(`link[rel="${rel}"]`);
+      if (!link) {
+        link = document.createElement("link");
+        link.rel = rel;
+        document.head.appendChild(link);
+        created.push(link);
+      }
+      link.href = href;
+      Object.entries(extraAttrs).forEach(([k, v]) => link.setAttribute(k, v));
+    };
+    const upsertMeta = (name, content) => {
+      let meta = document.querySelector(`meta[name="${name}"]`);
+      if (!meta) {
+        meta = document.createElement("meta");
+        meta.name = name;
+        document.head.appendChild(meta);
+        created.push(meta);
+      }
+      meta.setAttribute("content", content);
+    };
+
+    upsertLink("icon", APP_ICON_DATA_URL);
+    upsertLink("apple-touch-icon", APP_ICON_DATA_URL);
+    upsertMeta("apple-mobile-web-app-capable", "yes");
+    upsertMeta("mobile-web-app-capable", "yes");
+    upsertMeta("apple-mobile-web-app-title", "DAY//2004");
+    upsertMeta("apple-mobile-web-app-status-bar-style", "black-translucent");
+    upsertMeta("theme-color", COLORS.bg);
+    if (document.title !== "DAY//2004") document.title = "DAY//2004";
+
+    return () => {
+      created.forEach((el) => el.remove());
+    };
+  }, []);
+
+  // load persisted data
+  useEffect(() => {
+    (async () => {
+      const s = await loadKey("day2004-scenes", null);
+      const j = await loadKey("day2004-journal", {});
+      const st = await loadKey("day2004-appsettings", DEFAULT_APP_SETTINGS);
+      let h = await loadKey("day2004-history", null);
+      if (!h) {
+        h = [];
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          h.push({ date: d.toISOString().slice(0, 10), pct: 0 });
+        }
+      }
+
+      const today = todayISO();
+      const lastActiveDate = await loadKey("day2004-last-active-date", null);
+      let finalScenes = s || defaultScenes();
+      if (lastActiveDate && lastActiveDate !== today) {
+        // a new day started since we last had the app open — clear finished tasks only
+        finalScenes = clearCompletedTasks(finalScenes);
+        await saveKey("day2004-scenes", finalScenes);
+      }
+      await saveKey("day2004-last-active-date", today);
+      dayRolloverDateRef.current = today;
+      celebratedDateRef.current = await loadKey("day2004-celebrated-date", null);
+      lastWeeklySummaryRef.current = await loadKey("day2004-last-weekly-summary", null);
+
+      setScenes(finalScenes);
+      setJournal(j);
+      setHistory(h);
+      setAppSettings(st || DEFAULT_APP_SETTINGS);
+      const p = await loadPlaylistFromStorage();
+      setPlaylist(p);
+
+      const now = new Date();
+      const storedPosts = await loadKey("day2004-community-posts", null);
+      const storedNotifs = await loadKey("day2004-community-notifs", []);
+      const lastSeen = await loadKey("day2004-community-lastseen", null);
+
+      let posts, notifs;
+      if (!storedPosts) {
+        const seeded = seedInitialCommunity(now);
+        posts = seeded.posts;
+        notifs = seeded.notifications;
+      } else {
+        const fromDate = lastSeen ? new Date(lastSeen) : now;
+        const caughtUp = catchUpCommunity(storedPosts, fromDate, now);
+        posts = caughtUp.posts;
+        notifs = [...caughtUp.notifications, ...storedNotifs].slice(0, 60);
+      }
+      setCommunityPosts(posts);
+      setCommunityNotifications(notifs);
+      const storedOverrides = await loadKey("day2004-community-overrides", {});
+      setCharacterOverrides(storedOverrides);
+      await saveKey("day2004-community-lastseen", now.toISOString());
+
+      setLoaded(true);
+    })();
+  }, []);
+
+  // if the app stays open across midnight, roll the day over live (clear finished tasks only)
+  useEffect(() => {
+    if (!loaded) return;
+    const id = setInterval(() => {
+      const today = todayISO();
+      if (today !== dayRolloverDateRef.current) {
+        dayRolloverDateRef.current = today;
+        setScenes((prev) => {
+          const next = clearCompletedTasks(prev);
+          saveKey("day2004-scenes", next);
+          return next;
+        });
+        saveKey("day2004-last-active-date", today);
+      }
+    }, 60000);
+    return () => clearInterval(id);
+  }, [loaded]);
+
+  // keep lastSeen fresh so catch-up math stays accurate, and simulate the community "living" in real time
+  useEffect(() => {
+    if (!loaded) return;
+    const tick = () => {
+      const now = new Date();
+      const result = simulationTick(communityPostsRef.current, now);
+      let posts = result.posts;
+      let notifications = result.notifications;
+
+      const daysSinceSummary = lastWeeklySummaryRef.current
+        ? (now - new Date(lastWeeklySummaryRef.current)) / 86400000
+        : Infinity;
+      if (daysSinceSummary >= 7) {
+        const summary = buildWeeklySummaryPost(posts);
+        if (summary) {
+          posts = [summary, ...posts];
+          lastWeeklySummaryRef.current = now.toISOString();
+          saveKey("day2004-last-weekly-summary", now.toISOString());
+        }
+      }
+
+      setCommunityPosts(posts);
+      if (notifications.length) {
+        setCommunityNotifications((n) => [...notifications, ...n].slice(0, 60));
+      }
+      saveKey("day2004-community-posts", posts);
+      saveKey("day2004-community-lastseen", now.toISOString());
+    };
+    const id = setInterval(tick, 20000 + Math.random() * 15000);
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        saveKey("day2004-community-lastseen", new Date().toISOString());
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [loaded]);
+
+  // persist scenes + keep today's history entry live
+  useEffect(() => {
+    if (!loaded) return;
+    saveKey("day2004-scenes", scenes);
+    const totalTasks = scenes.reduce((a, s) => a + s.tasks.length, 0);
+    const doneTasks = scenes.reduce((a, s) => a + s.tasks.filter((t) => t.done).length, 0);
+    const pct = totalTasks ? Math.round((doneTasks / totalTasks) * 100) : 0;
+    setHistory((h) => {
+      const today = todayISO();
+      const idx = h.findIndex((x) => x.date === today);
+      let next;
+      if (idx >= 0) {
+        next = [...h];
+        next[idx] = { date: today, pct };
+      } else {
+        next = [...h.slice(1), { date: today, pct }];
+      }
+      saveKey("day2004-history", next);
+      return next;
+    });
+
+    if (totalTasks > 0 && doneTasks === totalTasks) {
+      const today = todayISO();
+      if (celebratedDateRef.current !== today) {
+        celebratedDateRef.current = today;
+        saveKey("day2004-celebrated-date", today);
+        const [char] = pickReactorCharacters(1);
+        const now = new Date();
+        const celebrationPost = {
+          id: uid(),
+          authorId: char.id,
+          time: now.toISOString(),
+          content: "okay but someone finished literally everything on their list today 👑🔥 that's the energy",
+          userReaction: null,
+          reactions: [],
+          comments: [],
+        };
+        setCommunityPosts((prev) => {
+          const nextPosts = [celebrationPost, ...prev].slice(0, COMMUNITY_POST_CAP);
+          saveKey("day2004-community-posts", nextPosts);
+          return nextPosts;
+        });
+        setCommunityNotifications((n) => {
+          const nextN = [
+            { id: uid(), type: "celebration", charId: char.id, postId: celebrationPost.id, time: now.toISOString(), read: false },
+            ...n,
+          ].slice(0, 80);
+          saveKey("day2004-community-notifs", nextN);
+          return nextN;
+        });
+        const supporters = pickReactorCharacters(2);
+        supporters.forEach((c, i) => {
+          setTimeout(() => {
+            setCommunityPosts((prev) => {
+              const nextPosts = prev.map((p) =>
+                p.id === celebrationPost.id
+                  ? p.reactions.some((r) => r.charId === c.id)
+                    ? p
+                    : { ...p, reactions: [...p.reactions, { charId: c.id, emoji: pickReactionEmoji() }] }
+                  : p
+              );
+              saveKey("day2004-community-posts", nextPosts);
+              return nextPosts;
+            });
+          }, 3000 + i * 4000);
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scenes, loaded]);
+
+  useEffect(() => {
+    if (loaded) saveKey("day2004-journal", journal);
+  }, [journal, loaded]);
+
+  useEffect(() => {
+    if (loaded) saveKey("day2004-appsettings", appSettings);
+  }, [appSettings, loaded]);
+
+  useEffect(() => {
+    if (loaded) saveKey("day2004-community-overrides", characterOverrides);
+  }, [characterOverrides, loaded]);
+
+  const updateScene = (updated) =>
+    setScenes((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+
+  const addScene = () => {
+    const name = window.prompt("Scene name?");
+    if (!name) return;
+    const time = window.prompt("Time range? e.g. 06:00 — 07:00", "06:00 — 07:00") || "";
+    setScenes((prev) => [...prev, { id: uid(), name: name.toUpperCase(), time, tasks: [] }]);
+  };
+
+  const deleteScene = (id) => {
+    setScenes((prev) => prev.filter((s) => s.id !== id));
+    setActiveSceneId(null);
+    setTab("scenes");
+  };
+
+  const resetAll = () => {
+    if (!window.confirm("Reset all DAY//2004 data? This cannot be undone.")) return;
+    setScenes(defaultScenes());
+    setJournal({});
+  };
+
+  const addTracks = async (fileList) => {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+    const newTracks = [];
+    let skippedForSize = 0;
+    for (const f of files) {
+      const dataUrl = await readFileAsDataURL(f);
+      const approxBytes = dataUrl.length * 0.75;
+      const id = uid();
+      const persisted = approxBytes <= MAX_PERSISTABLE_TRACK_BYTES;
+      const track = { id, name: f.name.replace(/\.[^/.]+$/, ""), url: dataUrl, persisted };
+      newTracks.push(track);
+      if (persisted) {
+        await saveKey("day2004-track-" + id, dataUrl);
+      } else {
+        skippedForSize++;
+      }
+    }
+    setPlaylist((p) => {
+      const next = [...p, ...newTracks];
+      savePlaylistMeta(next);
+      return next;
+    });
+    if (skippedForSize > 0) {
+      window.alert(
+        `${skippedForSize} file(s) were too large to save permanently (over ~4.5MB) — they'll play now but won't be there after you reload.`
+      );
+    }
+  };
+
+  const removeTrack = (id) => {
+    setPlaylist((p) => {
+      const next = p.filter((t) => t.id !== id);
+      savePlaylistMeta(next);
+      return next;
+    });
+    deleteKey("day2004-track-" + id);
+  };
+
+  const persistCommunity = (posts, notifs) => {
+    saveKey("day2004-community-posts", posts);
+    if (notifs) saveKey("day2004-community-notifs", notifs.slice(0, 80));
+  };
+
+  function findMentionedCharacter(text) {
+    const m = text.match(/@(\w+)/);
+    if (!m) return null;
+    const q = m[1].toLowerCase();
+    return COMMUNITY_CHARACTERS.find((c) => (characterOverrides?.[c.id]?.name || c.name).toLowerCase() === q) || null;
+  }
+
+  // reacts to a specific piece of user text (a new post OR a new comment) with realistic, fast timing
+  const scheduleUserTextReactions = (postId, text, { isNewPost, preferCharId, replyTo } = {}) => {
+    const mentioned = findMentionedCharacter(text);
+    const reactorCount = isNewPost ? 2 + Math.floor(Math.random() * 4) : 1 + Math.floor(Math.random() * 2);
+    let reactors = pickReactorCharacters(reactorCount, preferCharId || mentioned?.id);
+    if (mentioned && !reactors.some((r) => r.id === mentioned.id)) {
+      reactors = [mentioned, ...reactors];
+    }
+    reactors.forEach((char) => {
+      const isMentioned = mentioned && char.id === mentioned.id;
+      const delay = isMentioned
+        ? 3000 + Math.random() * 5000 // mentioned characters always respond fast
+        : char.closeness === "close"
+        ? 4000 + Math.random() * 8000
+        : char.closeness === "friend"
+        ? 8000 + Math.random() * 12000
+        : 14000 + Math.random() * 16000;
+      const isLike = isNewPost && !isMentioned ? Math.random() < 0.6 : false;
+
+      // show a brief "typing..." indicator right before a comment lands
+      if (!isLike) {
+        const typingDelay = Math.max(500, delay - 2200);
+        setTimeout(() => {
+          setCommunityTyping((t) => ({ ...t, [postId]: char.id }));
+        }, typingDelay);
+      }
+
+      setTimeout(() => {
+        const now = new Date();
+        setCommunityTyping((t) => {
+          const next = { ...t };
+          if (next[postId] === char.id) delete next[postId];
+          return next;
+        });
+        setCommunityPosts((prev) => {
+          const next = prev.map((p) => {
+            if (p.id !== postId) return p;
+            if (isLike) {
+              return p.reactions.some((r) => r.charId === char.id)
+                ? p
+                : { ...p, reactions: [...p.reactions, { charId: char.id, emoji: pickReactionEmoji() }] };
+            }
+            const comment = {
+              id: uid(),
+              authorId: char.id,
+              content: generateCommentContent(char, text),
+              time: now.toISOString(),
+              replyTo: replyTo || null,
+            };
+            return { ...p, comments: [...p.comments, comment] };
+          });
+          persistCommunity(next);
+          return next;
+        });
+        setCommunityNotifications((n) => {
+          const next = [
+            {
+              id: uid(),
+              type: isLike ? "like" : isNewPost ? "comment" : "reply",
+              charId: char.id,
+              postId,
+              time: now.toISOString(),
+              read: false,
+            },
+            ...n,
+          ].slice(0, 80);
+          saveKey("day2004-community-notifs", next);
+          return next;
+        });
+      }, delay);
+    });
+  };
+
+  const communityAddUserPost = (text) => {
+    const post = {
+      id: uid(),
+      authorId: "user",
+      time: new Date().toISOString(),
+      content: text,
+      userReaction: null,
+      reactions: [],
+      comments: [],
+    };
+    setCommunityPosts((prev) => {
+      const next = [post, ...prev].slice(0, COMMUNITY_POST_CAP);
+      persistCommunity(next);
+      return next;
+    });
+    scheduleUserTextReactions(post.id, text, { isNewPost: true });
+  };
+
+  const communitySetReaction = (postId, emoji) => {
+    setCommunityPosts((prev) => {
+      const next = prev.map((p) => (p.id === postId ? { ...p, userReaction: emoji } : p));
+      persistCommunity(next);
+      return next;
+    });
+  };
+
+  const communityAddComment = (postId, text, replyTo) => {
+    setCommunityPosts((prev) => {
+      const target = prev.find((p) => p.id === postId);
+      const repliedComment = replyTo ? target?.comments.find((c) => c.id === replyTo) : null;
+      const next = prev.map((p) =>
+        p.id === postId
+          ? {
+              ...p,
+              comments: [
+                ...p.comments,
+                { id: uid(), authorId: "user", content: text, time: new Date().toISOString(), replyTo: replyTo || null },
+              ],
+            }
+          : p
+      );
+      persistCommunity(next);
+      // characters (especially whoever authored the post, or the comment being replied to) reply back —
+      // keeps the thread alive instead of a single one-off reaction
+      const preferCharId = repliedComment && repliedComment.authorId !== "user"
+        ? repliedComment.authorId
+        : target && target.authorId !== "user"
+        ? target.authorId
+        : null;
+      scheduleUserTextReactions(postId, text, { isNewPost: false, preferCharId, replyTo: replyTo || null });
+      return next;
+    });
+  };
+
+  const communityMarkNotificationsRead = () => {
+    setCommunityNotifications((prev) => {
+      const next = prev.map((n) => ({ ...n, read: true }));
+      saveKey("day2004-community-notifs", next);
+      return next;
+    });
+  };
+
+  const activeScene = scenes.find((s) => s.id === activeSceneId);
+
+  let body;
+  if (showSettings) {
+    body = (
+      <MoreScreen
+        onBack={() => setShowSettings(false)}
+        onReset={resetAll}
+        appSettings={appSettings}
+        setAppSettings={setAppSettings}
+        playlist={playlist}
+        addTracks={addTracks}
+        removeTrack={removeTrack}
+      />
+    );
+  } else if (activeScene) {
+    body = (
+      <SceneDetailScreen
+        scene={activeScene}
+        index={scenes.findIndex((s) => s.id === activeSceneId)}
+        updateScene={updateScene}
+        onBack={() => setActiveSceneId(null)}
+        onDeleteScene={deleteScene}
+      />
+    );
+  } else if (tab === "home") {
+    body = (
+      <HomeScreen
+        scenes={scenes}
+        goScene={(id) => setActiveSceneId(id)}
+        journal={journal}
+        setJournal={setJournal}
+        appSettings={appSettings}
+        setAppSettings={setAppSettings}
+      />
+    );
+  } else if (tab === "scenes") {
+    body = <ScenesScreen scenes={scenes} goScene={(id) => setActiveSceneId(id)} addScene={addScene} />;
+  } else if (tab === "stats") {
+    body = <StatsScreen scenes={scenes} history={history} />;
+  } else if (tab === "journal") {
+    body = (
+      <JournalScreen
+        scenes={scenes}
+        journal={journal}
+        setJournal={setJournal}
+        history={history}
+        selectedDate={selectedDate}
+        setSelectedDate={setSelectedDate}
+        appSettings={appSettings}
+        setAppSettings={setAppSettings}
+      />
+    );
+  } else if (tab === "community") {
+    body = (
+      <CommunitySection
+        posts={communityPosts}
+        notifications={communityNotifications}
+        overrides={characterOverrides}
+        setOverrides={setCharacterOverrides}
+        onPost={communityAddUserPost}
+        onSetReaction={communitySetReaction}
+        typingIndicators={communityTyping}
+        onAddComment={communityAddComment}
+        onMarkNotificationsRead={communityMarkNotificationsRead}
+        onOpenSettings={() => setShowSettings(true)}
+      />
+    );
+  }
+
+  return (
+    <div
+      style={{
+        width: "100%",
+        maxWidth: 420,
+        margin: "0 auto",
+        height: "100dvh",
+        maxHeight: "100vh",
+        background: COLORS.bg,
+        display: "flex",
+        flexDirection: "column",
+        fontFamily: FONT_SANS,
+        overflow: "hidden",
+      }}
+    >
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&family=Silkscreen:wght@400;700&family=Poppins:wght@400;500;600;700&display=swap');
+        * { -webkit-tap-highlight-color: transparent; }
+        html, body, #root { height: 100%; margin: 0; overscroll-behavior: none; touch-action: pan-y; }
+        body { background: ${COLORS.bg}; }
+        input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.6; }
+        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes eqBar { from { transform: scaleY(0.4); } to { transform: scaleY(1); } }
+        @keyframes sqFlicker { from { opacity: 0.2; } to { opacity: 1; } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        button { transition: transform 120ms ease, opacity 120ms ease; }
+        button:active { transform: scale(0.94); opacity: 0.85; }
+        .day2004-app-fade-in { animation: fadeInUp 320ms ease both; }
+        .day2004-app-pop-in { animation: popIn 260ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+      `}</style>
+      <div style={{ flex: 1, overflowY: "auto", overscrollBehavior: "contain" }}>{body}</div>
+      {!activeScene && tab === "home" && (
+        <div
+          style={{
+            position: "sticky",
+            bottom: 0,
+            paddingTop: 8,
+            background: "linear-gradient(180deg, rgba(11,11,15,0) 0%, rgba(11,11,15,0.96) 35%)",
+          }}
+        >
+          <MusicPlayer playlist={playlist} addTracks={addTracks} removeTrack={removeTrack} />
+        </div>
+      )}
+      <BottomNav
+        active={showSettings ? "community" : activeScene ? "scenes" : tab}
+        onChange={(t) => {
+          setActiveSceneId(null);
+          setShowSettings(false);
+          setTab(t);
+        }}
+      />
+    </div>
+  );
+}
+
+import { createRoot } from "react-dom/client";
+createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
