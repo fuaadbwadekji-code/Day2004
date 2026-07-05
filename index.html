@@ -7,22 +7,49 @@
 <title>DAY//2004</title>
 <style>
   html, body, #root { height: 100%; margin: 0; background: #0B0B0F; }
+  #root { color: #fff; font-family: monospace; }
+  .boot-msg { padding: 20px; white-space: pre-wrap; word-break: break-word; font-size: 13px; line-height: 1.5; }
 </style>
+</head>
+<body>
+<div id="root"><div class="boot-msg" id="boot-msg">Loading DAY//2004…</div></div>
+
+<script>
+  // Catch any error (syntax, import, or render) and show it directly on the page
+  // instead of leaving a blank screen, so it's easy to screenshot and debug.
+  window.addEventListener("error", function (e) {
+    var el = document.getElementById("root");
+    if (el) {
+      el.innerHTML =
+        '<div class="boot-msg">⚠️ Something went wrong loading the app:\n\n' +
+        (e.message || e) +
+        (e.filename ? ("\n\nFile: " + e.filename + ":" + e.lineno) : "") +
+        '</div>';
+    }
+  });
+  window.addEventListener("unhandledrejection", function (e) {
+    var el = document.getElementById("root");
+    if (el) {
+      el.innerHTML =
+        '<div class="boot-msg">⚠️ Something went wrong loading the app:\n\n' +
+        (e.reason && e.reason.message ? e.reason.message : String(e.reason)) +
+        '</div>';
+    }
+  });
+</script>
+
 <script type="importmap">
 {
   "imports": {
     "react": "https://esm.sh/react@18.3.1",
     "react-dom": "https://esm.sh/react-dom@18.3.1",
     "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
-    "lucide-react": "https://esm.sh/lucide-react@0.383.0?external=react,react-dom",
-    "recharts": "https://esm.sh/recharts@2.12.7?external=react,react-dom"
+    "lucide-react": "https://esm.sh/lucide-react@0.383.0?bundle&external=react,react-dom",
+    "recharts": "https://esm.sh/recharts@2.12.7?bundle&external=react,react-dom"
   }
 }
 </script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-</head>
-<body>
-<div id="root"></div>
 <script type="text/babel" data-type="module" data-presets="react">
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
@@ -4325,7 +4352,12 @@ export default function App() {
 }
 
 import { createRoot } from "react-dom/client";
-createRoot(document.getElementById("root")).render(<App />);
+try {
+  createRoot(document.getElementById("root")).render(<App />);
+} catch (err) {
+  document.getElementById("root").innerHTML =
+    "<div class=\"boot-msg\">⚠️ Something went wrong rendering the app:\n\n" + (err && err.message ? err.message : String(err)) + "</div>";
+}
 </script>
 </body>
 </html>
