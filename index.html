@@ -11,12 +11,14 @@
 <title>DAY//2004</title>
 <style>
   html, body { height: 100vh; height: 100dvh; margin: 0; background: #0B0B0F; overflow: hidden; }
-  #root { height: 100%; }
+  #root { height: 100%; position: relative; }
   #boot-msg { padding: 20px; white-space: pre-wrap; word-break: break-word; font-family: monospace; font-size: 13px; line-height: 1.5; color: #fff; }
+  #build-tag { position: fixed; bottom: 2px; right: 6px; font-family: monospace; font-size: 9px; color: rgba(255,255,255,0.35); z-index: 99999; pointer-events: none; }
 </style>
 </head>
 <body>
 <div id="root"><div id="boot-msg">Loading DAY//2004\u2026</div></div>
+<div id="build-tag">v-20260705-2310</div>
 <script>
 window.addEventListener("error", function (e) {
   var el = document.getElementById("boot-msg");
